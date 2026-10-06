@@ -174,11 +174,8 @@ footer p { margin: 6px 0; }
   </div>
 
   <figure class="shot">
-    <picture>
-      <source srcset="app-dark.png" media="(prefers-color-scheme: dark)">
-      <img src="app-light.png" alt="The wasdmod app on a Mac: install controls in the toolbar, the key layout editor below with each action, its keys and the game's own key" width="1600" height="1258">
-    </picture>
-    <figcaption>The Mac app: install at the top, the key layout editor below. On Windows the same editor opens from the setup.</figcaption>
+    <img src="editor-windows.png" alt="The wasdmod key layout editor in its own window on Windows 11: each action with its keys and the game's own key, a checklist saying the game's keys match, and a keyboard map" width="1600" height="1122">
+    <figcaption>The key layout editor on Windows. The Mac app has the same editor built in.</figcaption>
   </figure>
 
   <section id="features">
@@ -196,11 +193,11 @@ footer p { margin: 6px 0; }
   <section>
     <div class="pair">
       <figure class="shot">
-        <img src="setup-windows.png" alt="The wasdmod setup on Windows: game folder, install, key layout and record logs" width="1216" height="1284">
-        <figcaption>Windows setup: install, pick a layout, edit keys.</figcaption>
+        <img src="setup-windows.png" alt="The wasdmod setup on Windows 11: installed and up to date, the game folder, Turn off and Uninstall, the key layout choice and Record logs" width="889" height="1000">
+        <figcaption>The Windows setup: install, pick a layout, edit keys.</figcaption>
       </figure>
       <figure class="shot">
-        <img src="keylist.png" alt="The on-screen key list in game, listing each key and the action it does" width="978" height="796">
+        <img src="keylist.png" alt="The on-screen key list in game on Windows, listing each key and the action it does" width="886" height="870">
         <figcaption>The key list in game (<kbd>F9</kbd>).</figcaption>
       </figure>
     </div>
@@ -236,7 +233,6 @@ footer p { margin: 6px 0; }
         <a class="btn primary" href="https://github.com/Wanzho/mcd2-wasd/releases/latest/download/wasdmod.zip">wasdmod.zip</a>
       </div>
     </div>
-    <p class="fine">Windows downloads are code signed through the <a href="https://signpath.org">SignPath Foundation</a>; see the <a href="#code-signing">code signing policy</a>.</p>
     <div class="note">
       <p><strong>Nothing in the game is modified.</strong> wasdmod is one file next to the game (<span class="code">xinput1_4.dll</span>), which Windows loads as the controller library. Press <kbd>`</kbd> in game to turn it off and on; Turn Off and Uninstall in the app remove it.</p>
     </div>
@@ -293,22 +289,11 @@ footer p { margin: 6px 0; }
     </details>
   </section>
 
-  <section id="code-signing">
-    <h2>Code signing policy</h2>
-    <p>Free code signing provided by <a href="https://signpath.io">SignPath.io</a>, certificate by <a href="https://signpath.org">SignPath Foundation</a>.</p>
-    <p>Signed files are built from the public source code on GitHub Actions, and each release's signing is approved by hand.</p>
-    <ul>
-      <li>Committers and reviewers: <a href="https://github.com/Wanzho">Wanzho</a></li>
-      <li>Approvers: <a href="https://github.com/Wanzho">Wanzho</a></li>
-    </ul>
-    <p>Privacy: this program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. See the <a href="privacy.html">privacy policy</a>.</p>
-  </section>
-
 </main>
 
 <footer>
   <div class="wrap">
-    <p><a href="https://github.com/Wanzho/mcd2-wasd">GitHub</a> · <a href="https://github.com/Wanzho/mcd2-wasd/releases/latest">Download</a> · <a href="https://github.com/Wanzho/mcd2-wasd/issues">Issues</a> · <a href="privacy.html">Privacy</a> · <a href="#code-signing">Code signing policy</a> · <a href="https://wanzho.github.io/mcd2-crossover/">MCD2 Crossover</a></p>
+    <p><a href="https://github.com/Wanzho/mcd2-wasd">GitHub</a> · <a href="https://github.com/Wanzho/mcd2-wasd/releases/latest">Download</a> · <a href="https://github.com/Wanzho/mcd2-wasd/issues">Issues</a> · <a href="privacy.html">Privacy</a> · <a href="https://wanzho.github.io/mcd2-crossover/">MCD2 Crossover</a></p>
     <p>Unofficial fan project. Not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Synergies AB.</p>
   </div>
 </footer>
