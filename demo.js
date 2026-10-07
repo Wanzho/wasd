@@ -4,6 +4,10 @@
    W A S D = left stick, left click = X (in the air: heavy jump attack),
    right click = right-stick flick (dodge; drag to aim), Shift = LB (forward
    dodge), Space = A (jump). Everything is drawn in code: no assets, no network.
+   With motion on, the screen powers on as it scrolls in and a little bot shows one
+   move at a time, pressing real keys so the HUD and the move list light up, until the
+   visitor takes over. Where the stage fits the screen it holds still for a few
+   scrolls and the scroll picks the move (#try-rail, .try-pin).
    It builds itself inside #demo and does nothing when the page has no #demo. */
 (function () {
   'use strict';
@@ -36,6 +40,7 @@
   // Skills on 1 2 3 (the mod puts the artifact slots on Y, B and RB). All of them aim themselves.
   var SKILLS = [{ cd: 2.5, pad: 'y', c: '#7fe0ff' }, { cd: 6, pad: 'b', c: '#a9dcff' }, { cd: 10, pad: 'rb', c: '#ff9a2e' }];
   var DIRS = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]]; // 8 ways, y down
+  var INTRO = 1.25, FOCI = ['move', 'roll', 'attack', 'skills', 'jump', 'bow'];   // the arrival (s); the six moves
 
   var root, cv, ctx, ui = {}, reduced = false;
   var T = 0;                                    // game clock in seconds; only runs with the loop
@@ -47,6 +52,7 @@
   var drag = null, touch = null, lastTouch = 0, mbtn = {}, layout = 'rec';
   var bowBy = null, aimPt = { x: 230, y: 100 }, arrows = [];   // who holds the bow, where it aims (game px)
   var visible = true, onscreen = true, raf = 0, last = 0, shake = 0, hitstop = 0;
+  var intro = INTRO, drops = [], hover = false, moved = 0, rail = null;   // intro: -1 = screen off, else seconds in
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function rnd(a, b) { return a + Math.random() * (b - a); }
@@ -334,6 +340,7 @@
     ui.arrow = root.querySelector('.wd-arrow');
     ui.press = root.querySelector('.wd-press');
     ui.hud = root.querySelector('.wd-hud');
+    ui.frame = root.querySelector('.wd-frame');
     ui.opts = root.querySelector('.wd-opts');
     ui.sk = Array.prototype.slice.call(root.querySelectorAll('.wd-sk'));
     ui.sk.forEach(function (el, i) {                 // pixel icons; on touch screens the slots can be tapped
@@ -392,6 +399,7 @@
       'click attacks, right click draws the bow and aims at the cursor, R or side button 4 rolls, side button 5 dodges ' +
       'forward, 1 2 3 use skills.') + ' The panel below shows the keys you press turning into the controller input the game sees.');
     if (save) remember('wasdmod-demo-layout', l);
+    if (rail) { railKeys(); refit(); }
     sized.w = 0; sized();
   }
 
@@ -462,6 +470,10 @@
       any = any || v;
     });
     lit(ui.arrow, any);
+    if (!rail) return;                               // the move list's keys light up the same way
+    for (k = 0; k < rail.lights.length; k++) lit(rail.lights[k], pressed(rail.lights[k].getAttribute('data-k')));
+    var dg = rail.drag, da = ds ? Math.atan2(ds[1], ds[0]).toFixed(2) + 'rad' : '';
+    if (dg && dg._a !== da) { dg._a = da; lit(dg, !!ds); if (ds) dg.style.setProperty('--a', da); }
   }
   function setScore() {
     ui.score.textContent = String(score);
@@ -490,9 +502,11 @@
     mode = 'player';
     bot = {}; botUntil = {}; ai.slam = false; ai.drag = null; skReady = [T, T, T];   // all three skills ready to try
     if (bowBy === 'bot') { hero.bow = null; bowBy = null; }
+    if (intro < INTRO) settle();                     // mid-arrival: everyone lands at once
     score = 0; setScore();
     root.classList.add('wd-playing');
     ui.badge.textContent = 'You’re playing';
+    yourTurn();
     schedule();
   }
   function giveBack() {
@@ -500,6 +514,7 @@
     releaseAll(); flash = {};
     root.classList.remove('wd-playing');
     ui.badge.textContent = 'Demo';
+    ai.since = T; railState();
     if (reduced) { render(); hud(); }
     schedule();
   }
@@ -514,6 +529,7 @@
     var h = hero;
     if (h.z > 0 || h.roll > 0) return;
     h.vz = JUMP_V; h.z = 0.01; h.slam = false; h.bow = null; bowBy = null;   // jumping lowers the bow
+    did('jump');
   }
   function charge(t) { return clamp((t - 0.08) / 0.62, 0, 1); }   // bow: full after about 0.7 s
   function bowStart(by) {                            // RT held: draw the bow; it aims wherever the crosshair is
@@ -530,17 +546,19 @@
     arrows.push({ x: h.x + d[0] * 6, y: h.y - 8 - h.z + d[1] * 6, ux: d[0], uy: d[1], v: 230 + 240 * c, full: c >= 1, hit: [], stuck: 0 });
     if (arrows.length > 12) arrows.shift();
     burst(h.x + d[0] * 7, h.y, 8 + h.z, c >= 1 ? 6 : 3, c >= 1 ? ['#ffffff', '#ffe9a8'] : ['#e8e0d0'], 15, 40, 0.25, true);
+    did('bow');
   }
   function attack() {
     var h = hero;
     if (h.bow) return;                               // no sword while the bow is drawn
     if (h.roll > 0) { h.buffer = T + 0.2; return; }
     if (h.z > 2) {                                   // heavy jump attack: hang, then slam down
-      if (!h.slam) { h.slam = true; h.vz = 45; h.swing = 0; }
+      if (!h.slam) { h.slam = true; h.vz = 45; h.swing = 0; did('attack'); }
       return;
     }
     if (h.swing > 0) { h.buffer = T + 0.25; return; }
     h.swing = SWING_T; h.swingA = Math.atan2(h.fy / SQ, h.fx); h.side = -(h.side || 1); h.hits = [];
+    did('attack');
   }
   function dodge(dx, dy, viaLB) {
     if (!viaLB) { pad.rx = dx; pad.ry = dy; pad.flick = T + 0.22; }   // right stick flick
@@ -551,6 +569,7 @@
     h.rdx = dx; h.rdy = dy; h.fx = dx; h.fy = dy; h.face = faceOf(dx, dy);
     h.swing = 0; h.ghostT = 0;
     dust(h.x, h.y, 5);
+    did('roll');
   }
   function dodgeMove() {                             // right click without a drag: the way you move/face
     var l = Math.hypot(pad.lx, pad.ly);
@@ -578,7 +597,13 @@
     var k = CODES[e.code], tg = e.target, a = k && (MOVE[k] ? 'move' : LAYOUTS[layout].bind[k]);
     if (!a || e.ctrlKey || e.metaKey || e.altKey || editable(tg) || !onscreen || document.hidden) return;
     if (tg && tg.closest && tg.closest('.wd-seg')) return;   // the layout/difficulty buttons keep Space/Enter
-    if (mode !== 'player') { if (a !== 'move' && !(a in SKEY)) return; takeOver(); }
+    var page = k === 'space' || e.code.indexOf('Arrow') === 0;   // keys that also scroll the page
+    if (page && tg !== document.body && tg.closest('a,button,summary,[tabindex]')) return;   // Space presses a focused button
+    if (tg.closest('.tr-list')) return;              // and the move list's buttons keep all their keys
+    if (mode !== 'player') {                         // any game key takes over, but not Shift alone; Space and the arrows
+      if (k === 'shift' || (page && !hover)) return; // only with the pointer on the game, else they scroll the page
+      takeOver();
+    }
     e.preventDefault();                              // only while playing and on screen: no page scroll
     lastInput = performance.now();
     if (down[e.code]) return;
@@ -640,6 +665,7 @@
     var dx = e.clientX - touch.x, dy = e.clientY - touch.y;
     if (Math.hypot(dx, dy) < 12) { if (tdir >= 0) { tdir = -1; syncHeld(); } return; }
     touch.moved = true;
+    if (mode !== 'player' && Math.abs(dy) > Math.abs(dx)) return;   // the demo is playing: up and down scroll the page
     takeOver();
     var i = octant(dx, dy);
     if (i !== tdir) { tdir = i; syncHeld(); }
@@ -701,7 +727,7 @@
   }
   function land() {
     var h = hero;
-    if (!h.slam) { dust(h.x, h.y, 5); return; }
+    if (!h.slam) { dust(h.x, h.y, intro < INTRO ? 16 : 5); return; }
     h.slam = false; hitstop = 0.08;                  // heavy jump attack: shockwave, flash, debris, a crater
     if (!reduced) shake = 0.34;
     rings.push({ x: h.x, y: h.y, t: 0, max: 0.5, r: 56, c: ['#fff4d6', '#ffb35c', '#ff8a3d'] });
@@ -824,9 +850,13 @@
         b.w = k - 2; b.h = k + (b.vz > 0 ? 1 : -1);
         b.x += b.vx * dt; b.y += b.vy * dt;
         if (b.t <= 0) { b.z = 0; b.st = 'land'; b.t = 0.12; }
+      } else if (b.st === 'drop') {                   // arriving: falls in stretched, lands squashed, bounces once
+        b.vz -= 900 * dt; b.z += b.vz * dt; b.w = k - 2; b.h = k + 2;
+        if (b.z <= 0) { b.z = 0; b.st = 'land'; b.t = 0.1; b.hop = 1; dust(b.x, b.y, 3); }
       } else {
         b.w = k + 4; b.h = k - 5;
-        if (b.t <= 0) { b.st = 'rest'; b.t = rnd(0.2, 0.75); }
+        if (b.t <= 0 && b.hop) { b.hop = 0; b.st = 'air'; b.vx = b.vy = 0; b.vz = 44; b.t = 88 / BLOB_G; }
+        else if (b.t <= 0) { b.st = 'rest'; b.t = rnd(0.2, 0.75); }
       }
       if (!b.inside && b.x > BX0 && b.x < BX1 && b.y < BY1) b.inside = true;
       if (b.inside) { b.x = clamp(b.x, BX0, BX1); b.y = clamp(b.y, BY0, BY1); }
@@ -893,6 +923,7 @@
     if (T < skReady[i]) return;
     var h = hero, t = i === 1 ? null : aim(i >> 1);
     skReady[i] = T + SKILLS[i].cd; skUsed[i] = T;
+    did('skills');
     if (i === 0) {                                   // Spark Bolt: a fast bolt that zaps every blob in its line
       var dx = t ? t.x - h.x : h.fx, dy = t ? t.y - h.y : h.fy, l = Math.hypot(dx, dy) || 1;
       h.fx = dx / l; h.fy = dy / l;
@@ -984,24 +1015,85 @@
     });
   }
 
-  /* ---------- autopilot: plays until the visitor does, pressing real keys so the HUD lights up ---------- */
+  /* ---------- autopilot: shows one move at a time, pressing real keys so the HUD lights up ---------- */
 
-  var ai = { next: 0, slam: false, slamAt: 3, rollAt: 2, lbAt: 5, dir: -1, skillAt: 3.5, bowAt: 4, bowDur: 1, tgt: null };
+  var WAY = [[104, 84], [216, 84], [252, 132], [200, 160], [116, 160], [68, 130]];   // a lap of the room
+  var ai = { focus: 'move', since: 0, next: 0, slam: false, drag: null, tgt: null, dir: -1, wp: 0, n: 0, bowDur: 0.8 };
   function press(k, dur) { bot[k] = 1; botUntil[k] = T + dur; }
+  function hold(k) { bot[k] = 1; delete botUntil[k]; }
   function steer(i) { var d = i >= 0 ? DIRS[i] : [0, 0]; bot.w = d[1] < 0; bot.s = d[1] > 0; bot.a = d[0] < 0; bot.d = d[0] > 0; }
-  function unit(i) { var d = DIRS[i], l = Math.hypot(d[0], d[1]); return [d[0] / l, d[1] / l]; }
-  function inRoom(x, y) { return x > BX0 + 6 && x < BX1 - 6 && y > BY0 + 4 && y < BY1 - 4; }
   function K(a) { return LAYOUTS[layout].main[a]; }  // the key or button the active layout uses for an action
+  function setFocus(f) {                             // the move the bot shows next
+    if (ai.focus === f) return;
+    ai.focus = f; ai.since = T; ai.n = 0; ai.next = Math.max(ai.next, T + 0.15);
+    if (f === 'skills' && mode === 'auto') {         // all three ready soon, in turn
+      skReady = skReady.map(function (r, i) { return Math.min(r, T + 0.2 + i * 0.8); });
+    }
+  }
+  function closest(far) {                            // the nearest blob (or the farthest)
+    var best = null, bd = far ? -1 : 1e9;
+    blobs.forEach(function (b) {
+      var d = Math.hypot(b.x - hero.x, (b.y - hero.y) / SQ);
+      if (!b.dead && b.inside && (far ? d > bd : d < bd)) { bd = d; best = b; }
+    });
+    return best && { b: best, d: bd, dx: best.x - hero.x, dy: best.y - hero.y };
+  }
+  function goTo(x, y, r) {                           // walk toward a point, 8 ways, without flicker at the edges
+    var dx = x - hero.x, dy = y - hero.y, want = octant(dx, dy);
+    if (Math.hypot(dx, dy) <= r) { steer(-1); return true; }
+    if (ai.dir >= 0 && angDiff(Math.atan2(dy, dx), ai.dir * Math.PI / 4) < 0.6) want = ai.dir;
+    steer(ai.dir = want);
+  }
+  function face(t) {                                 // turn to it first: the sword and the skills go the way you face
+    var want = octant(t.dx, t.dy);
+    if (octant(hero.fx, hero.fy) === want) { steer(-1); return true; }
+    steer(want); ai.next = T + 0.07;
+  }
+  function lap() { var p = WAY[ai.wp]; if (goTo(p[0], p[1], 12)) ai.wp = (ai.wp + 1) % WAY.length; }
+  var SHOW = {
+    move: lap,
+    roll: function (t) {                             // at a blob: right-click dragged its way, or R while walking at it
+      var l = Math.hypot(t.dx, t.dy) || 1, ux = t.dx / l, uy = t.dy / l;
+      if (t.d > 86) return goTo(t.b.x, t.b.y, 0);
+      if (t.d < 34) return goTo(hero.x - ux * 30, hero.y - uy * 30, 0);   // too close: back off for a run-up
+      if (layout === 'rec') { steer(-1); hold('mr'); ai.drag = { k: 'mr', ux: ux, uy: uy, t0: T, dur: 0.34 }; }
+      else {
+        steer(octant(ux, uy)); press('r', 0.14); dodge(ux, uy);
+        'wasd'.split('').forEach(function (c) { if (bot[c]) botUntil[c] = T + 0.4; });   // let go of the walk soon after
+      }
+      ai.next = T + 1.2;
+    },
+    attack: function (t) {
+      if (t.d > 21) return goTo(t.b.x, t.b.y, 0);
+      if (face(t) && hero.swing <= 0) { press('ml', 0.12); attack(); ai.next = T + 0.3; }
+    },
+    skills: function (t) {                           // the first one ready, aimed by facing the blob
+      for (var i = 0; i < 3 && T < skReady[i]; i++);
+      if (i > 2) return SHOW.attack(t);
+      if (t.d > (i === 1 ? 32 : 110)) return goTo(t.b.x, t.b.y, 0);   // Frost Ring works up close
+      if (face(t)) { press(K('k' + (i + 1)), 0.16); skill(i); ai.next = T + 0.9; }
+    },
+    jump: function (t) {                             // a running jump, then a jump attack on a blob
+      if (ai.n % 2 === 0) lap();
+      else if (t.d > 30) return goTo(t.b.x, t.b.y, 0);
+      else { steer(-1); ai.slam = true; }
+      press(K('jump'), 0.16); jump(); ai.n++; ai.next = T + 0.75;
+    },
+    bow: function () {                               // the farthest blob: hold, aim, let go at a full draw
+      steer(-1); hold(K('bow')); bowStart('bot');
+      ai.tgt = closest(true); ai.bowDur = rnd(0.78, 0.95); ai.next = T + 0.5;
+    }
+  };
   function autopilot() {
-    var h = hero, tgt = null, td = 1e9, near = 0, bk = K('bow');
+    var h = hero, bk = K('bow'), t;
     if (bot[bk] && !h.bow) bot[bk] = 0;              // the draw was cut short (a dodge, a jump): let go
     if (h.bow && bowBy === 'bot') {                  // aiming: the crosshair glides onto the target, then loose
-      if (!ai.tgt || ai.tgt.b.dead) ai.tgt = aim(0);
-      if (h.bow.t >= ai.bowDur) { bot[bk] = 0; bowRelease(); ai.bowAt = T + rnd(4, 8); ai.next = T + 0.2; }
+      if (!ai.tgt || ai.tgt.b.dead) ai.tgt = closest();
+      if (h.bow.t >= ai.bowDur || ai.focus !== 'bow') { bot[bk] = 0; bowRelease(); ai.next = T + 0.45; }
       return;
     }
     if (ai.drag) {                                   // a roll: the button is held and dragged; let go to roll that way
-      if (T - ai.drag.t0 >= ai.drag.dur) { var g = ai.drag; ai.drag = null; bot[g.k] = 0; dodge(g.ux, g.uy); ai.next = T + 0.15; }
+      if (T - ai.drag.t0 >= ai.drag.dur) { var g = ai.drag; ai.drag = null; bot[g.k] = 0; dodge(g.ux, g.uy); }
       return;
     }
     if (h.z > 0) {                                   // mid-jump: click near the top for the heavy jump attack
@@ -1009,53 +1101,53 @@
       return;
     }
     if (T < ai.next || h.roll > 0) return;
-    ai.next = T + rnd(0.08, 0.16);
-    blobs.forEach(function (b) {
-      if (b.dead || !b.inside) return;
-      var d = Math.hypot(b.x - h.x, (b.y - h.y) / SQ);
-      if (d < td) { td = d; tgt = b; }
-      if (d < 42) near++;
-    });
-    if (!tgt) { var cx = 160 - h.x, cy = 112 - h.y; steer(Math.hypot(cx, cy) > 20 ? octant(cx, cy) : -1); return; }
-    var dx = tgt.x - h.x, dy = tgt.y - h.y, want = octant(dx, dy);
-    if (ai.dir >= 0 && angDiff(Math.atan2(dy, dx), ai.dir * Math.PI / 4) < 0.6) want = ai.dir;   // no flicker at octant edges
-    ai.dir = want;
-    if (T > ai.skillAt && Math.random() < 0.5) {     // skills now and then, aimed the same way as for the visitor
-      var use = -1, t;
-      if (T >= skReady[1] && (near >= 2 || (td < 16 && Math.random() < 0.4))) use = 1;
-      else if (T >= skReady[2] && (t = aim(1)) && (t.n >= 2 || Math.random() < 0.3)) use = 2;
-      else if (T >= skReady[0] && (t = aim(0)) && (t.n >= 2 || (td > 60 && Math.random() < 0.5))) use = 0;
-      if (use >= 0) { press(K('k' + (use + 1)), 0.16); skill(use); ai.skillAt = T + rnd(1.2, 2.6); return; }
-    }
-    if (T > ai.bowAt && td > 70 && !near && Math.random() < 0.5) {   // a blob far off: the bow
-      steer(-1); bot[bk] = 1; delete botUntil[bk];
-      bowStart('bot'); ai.tgt = { b: tgt }; ai.bowDur = rnd(0.5, 1.05);
-      return;
-    }
-    if (T > ai.slamAt && td < 30 && (near >= 2 || Math.random() < 0.1)) {
-      steer(-1); press(K('jump'), 0.16); jump(); ai.slam = true; ai.slamAt = T + rnd(5, 9);
-      return;
-    }
-    if (td < 26 && T > ai.rollAt && (tgt.st === 'crouch' || Math.random() < 0.3)) {   // roll aside, the way it walks
-      var side = (want + (Math.random() < 0.5 ? 2 : 6)) % 8, u = unit(side);
-      if (!inRoom(h.x + u[0] * 50, h.y + u[1] * 50)) { side = (side + 4) % 8; u = unit(side); }
-      var rk = layout === 'rec' ? 'mr' : 'm4';       // the roll's mouse button: right click, or side 4
-      steer(side); bot[rk] = 1; delete botUntil[rk];
-      ai.drag = { k: rk, ux: u[0], uy: u[1], t0: T, dur: rnd(0.16, 0.26) }; ai.rollAt = T + rnd(2.5, 5);
-      return;
-    }
-    if (td > 75 && T > ai.lbAt && octant(h.fx, h.fy) === want) {   // far away: forward dodge (LB) to close in
-      steer(want); press(K('fwd'), 0.14); dodge(h.fx, h.fy, true); ai.lbAt = T + rnd(5, 9);
-      return;
-    }
-    if (td < 25) {                                   // inside sword reach
-      if (octant(h.fx, h.fy) !== want && h.swing <= 0) { steer(want); ai.next = T + 0.06; return; }   // turn to face it
-      steer(-1);
-      if (h.swing <= 0) { press('ml', 0.12); attack(); }
-      return;
-    }
-    steer(want);
+    ai.next = T + 0.1;
+    t = closest();
+    if (t || ai.focus === 'move') SHOW[ai.focus](t);
+    else goTo(160, 112, 20);                         // nobody here yet: back to the middle
   }
+
+  /* ---------- the arrival: the screen powers on, the blobs drop in one by one, then the hero ---------- */
+
+  function arrive() {
+    var n = LEVELS[level][0], a = rnd(0, TAU), i;
+    intro = T = 0; blobs = []; parts = []; spawnT = 9;
+    hero = newHero(); hero.z = 118; hero.vz = -170;  // waits above the screen, then falls in
+    for (drops = [], i = 0; i < n; i++, a += TAU / n) {
+      drops.push({ x: clamp(160 + Math.cos(a) * rnd(85, 118), BX0 + 14, BX1 - 14), y: clamp(118 + Math.sin(a) * rnd(36, 50), BY0 + 8, BY1 - 6) });
+    }
+    drops.sort(function (p, q) { return p.y - q.y; }).forEach(function (d, j) { d.at = 0.16 + j * 0.5 / n; });   // the back row first
+    root.classList.remove('wd-off');
+    schedule();
+  }
+  function dropBlob(d, now) {
+    var b = newBlob(d.x, d.y, [10, 12, 12, 14][(Math.random() * 4) | 0]);
+    b.inside = true;
+    if (!now) { b.st = 'drop'; b.z = d.y + 14; b.vz = -140; }   // from just above the top of the screen
+    blobs.push(b);
+  }
+  function settle() {                                // skip to the end of the arrival
+    if (intro < 0) arrive();
+    while (drops.length) dropBlob(drops.shift(), 1);
+    blobs.forEach(function (b) { if (b.st === 'drop') { b.z = b.vz = 0; b.st = 'rest'; } });
+    hero.z = hero.vz = 0; intro = INTRO; spawnT = Math.min(spawnT, 0.8);
+  }
+  function powerOn(a) {                              // a bright line opens into the picture, a sweep runs down, the glare fades
+    var o = clamp((a - 0.05) / 0.2, 0, 1), h = Math.round(H / 2 * (1 - Math.pow(1 - o, 3))), w = Math.round(W / 2 * clamp(a / 0.07, 0, 1));
+    var s = (a - 0.16) / 0.34, y = Math.round(s * (H + 14)) - 7, i;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#050408';
+    ctx.fillRect(0, 0, W, H / 2 - h); ctx.fillRect(0, H / 2 + h, W, H / 2 - h);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = '#ffe6c8';
+    ctx.globalAlpha = Math.max(0, 0.45 - a);
+    ctx.fillRect(0, H / 2 - h, W, h * 2);
+    ctx.globalAlpha = 1 - o * 0.75;
+    ctx.fillRect(W / 2 - w, H / 2 - h - 1, w * 2, 1); ctx.fillRect(W / 2 - w, H / 2 + h, w * 2, 1);
+    for (i = 0; s > 0 && s < 1 && i < 6; i++) { ctx.globalAlpha = (0.34 - i * 0.055) * (1 - s / 2); ctx.fillRect(0, y - i * 2, W, 1); }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+
   function step(dt) {
     if (hitstop > 0) { hitstop -= dt; return; }       // a few frames of freeze make hits land
     T += dt;
@@ -1064,9 +1156,19 @@
       if (!shouldRun()) return;                      // reduced motion: freeze right here, before the autopilot moves
     }
     for (var k in botUntil) if (T >= botUntil[k]) { bot[k] = 0; delete botUntil[k]; }
-    if (mode === 'auto') autopilot(dt);
+    if (intro < INTRO) {                             // arriving: the blobs drop in on their timer
+      intro += dt;
+      while (drops.length && intro >= drops[0].at) dropBlob(drops.shift());
+      if (intro >= INTRO) { spawnT = Math.min(spawnT, 0.8); ai.since = T; }
+    } else if (mode === 'auto') {
+      if (!(rail && rail.pinned) && T - ai.since > 3.6) {   // nothing pinned: the moves take turns
+        k = (FOCI.indexOf(ai.focus) + 1) % 6;
+        if (rail) setStep(k); else setFocus(FOCI[k]);
+      }
+      autopilot();
+    } else if (Math.hypot(pad.lx, pad.ly) > 0.5 && (moved += dt) > 0.4) did('move');
     stick(dt);
-    stepHero(dt);
+    if (intro >= 0.5) stepHero(dt);
     stepBlobs(dt);
     stepSkills(dt);
     stepArrows(dt);
@@ -1316,6 +1418,7 @@
     var h = hero, ox = 0, oy = 0;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
+    if (intro < 0) { ctx.fillStyle = '#050408'; ctx.fillRect(0, 0, W, H); return; }   // off until it scrolls in
     if (shake > 0) {
       var s = Math.min(1, shake / 0.18) * 3;
       ox = Math.round(rnd(-s, s)); oy = Math.round(rnd(-s, s));
@@ -1368,11 +1471,201 @@
     ctx.drawImage(gc, 0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
     drawAim();                                       // the crosshair stays crisp on top of everything
+    if (intro < 0.6) powerOn(intro);
+  }
+
+  /* ---------- the move list beside the game (#try-rail): what the bot shows, what the visitor has done ---------- */
+
+  var LESSONS = {      // name, keys in the Recommended / Official layout, what to say (one line, or one per layout)
+    move: ['Move', 'w a s d', 'w a s d', 'Walk any way you like, smooth as a stick.'],
+    roll: ['Roll', 'mr drag', 'r or m4', 'Hold right‑click and drag: you roll that way.', 'R or side button 4 rolls the way you move.'],
+    attack: ['Attack', 'ml', 'ml', 'Click to swing your sword.'],
+    skills: ['Skills', 'q 2 3', '1 2 3', 'Skills aim themselves the way you face.'],
+    jump: ['Jump', 'space', 'space', 'Jump, then click at the top to slam down.'],
+    bow: ['Bow', 'm4', 'mr', 'Hold side button 4 to aim at the cursor, let go to fire.', 'Hold right‑click to aim at the cursor, let go to fire.']
+  };
+  function keyHTML(spec) {                           // keycaps, one mouse for the mouse buttons, a drag arrow
+    var t = spec.split(' ');
+    return t.map(function (s) {
+      if (s === 'drag') return '<i class="tr-drag"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 12h14m-5-5.5 ' +
+        '5.5 5.5-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></i>';
+      if (s === 'or') return '<span class="tr-or">or</span>';
+      if (s.charAt(0) !== 'm' || s.length !== 2) {
+        return '<kbd' + (s === 'space' ? ' class="wide"' : '') + ' data-k="' + s + '">' + (s === 'space' ? 'Space' : s.toUpperCase()) + '</kbd>';
+      }
+      return '<span class="wd-mouse tr-mouse">' + ['ml', 'mr', 'm5', 'm4'].map(function (b, j) {
+        return '<i class="' + (j > 1 ? 'wd-side wd-s' + b.charAt(1) : '') + (b === s ? ' tr-hl' : '') + '" data-k="' + b + '"></i>';
+      }).join('') + '</span>';
+    }).join('');
+  }
+  function initRail() {
+    var el = document.getElementById('try-rail');
+    if (!el) return;
+    el.insertAdjacentHTML('afterbegin', '<p class="tr-status"><i class="tr-dot"></i><b class="tr-say"></b><span class="tr-sub"></span></p>' +
+      '<ol class="tr-list">' +
+      FOCI.map(function (m, i) {
+        return '<li><button type="button" class="tr-item"><b class="tr-mark">' + (i + 1) + '</b>' + LESSONS[m][0] + '<span class="tr-more"></span></button></li>';
+      }).join('') + '</ol><div class="tr-card"><div class="tr-body"></div><p class="tr-try"></p></div>');
+    rail = { el: el, step: -1, done: {}, n: 0, lights: [], items: el.querySelectorAll('.tr-item'), say: el.querySelector('.tr-say'),
+      sub: el.querySelector('.tr-sub'), card: el.querySelector('.tr-card'), body: el.querySelector('.tr-body'),
+      line: el.querySelector('.tr-done p') };
+    el.classList.toggle('is-static', reduced);
+    el.hidden = false;
+    el.querySelector('.tr-list').addEventListener('click', function (e) {   // pick a move instead of scrolling to it
+      var b = e.target.closest('.tr-item'), i = [].indexOf.call(rail.items, b);
+      if (i < 0) return;
+      if (rail.pinned && jumpTo) jumpTo(i); else { setStep(i); ai.since = T; }   // no pin: the turns restart from it
+      if (e.detail) b.blur();                        // a click or a tap, not a key: keys go back to the game
+    });
+    railKeys();
+    if (!reduced) setStep(0);
+    railState();
+  }
+  function railKeys() {                              // the keys and words for the chosen layout
+    var off = layout === 'off';
+    FOCI.forEach(function (m, i) {
+      var L = LESSONS[m];
+      rail.items[i].lastChild.innerHTML = '<span class="tr-keys">' + keyHTML(L[off ? 2 : 1]) + '</span>' +
+        '<span class="tr-desc">' + (off && L[4] || L[3]) + '</span>';
+    });
+    fillCard();
+  }
+  function fillCard(anim) {                          // the card under the list: the highlighted move, big, its keys live
+    if (rail.step >= 0) {
+      rail.body.innerHTML = rail.items[rail.step].lastChild.innerHTML;
+      rail.card.classList.toggle('is-done', !!rail.done[FOCI[rail.step]]);
+      if (anim && !reduced && rail.body.animate) {
+        rail.body.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }],
+          { duration: 420, easing: 'cubic-bezier(.22,.8,.24,1)' });
+      }
+    }
+    rail.lights = rail.el.querySelectorAll('[data-k]');
+    rail.drag = rail.body.querySelector('.tr-drag');
+  }
+  function setStep(i) {                              // the highlighted move; the bot shows it next
+    if (!rail || i === rail.step) return;
+    rail.step = i;
+    FOCI.forEach(function (m, j) {
+      var it = rail.items[j];
+      it.classList.toggle('on', j === i);
+      if (j === i) it.setAttribute('aria-current', 'step'); else it.removeAttribute('aria-current');
+    });
+    fillCard(true);
+    setFocus(FOCI[i]);
+  }
+  function railState() {                             // watching, or your turn (and how many of the six you've done)
+    if (!rail) return;
+    var play = mode === 'player', tap = root.classList.contains('wd-coarse');
+    rail.el.classList.toggle('is-play', play);
+    rail.say.textContent = play ? 'Your turn.' : reduced ? 'Try the moves' : 'Watch the demo';
+    rail.sub.textContent = play ? rail.n + ' of 6 tried' + (tap ? '' : ' · Esc to stop')
+      : tap ? 'Tap the game to play' : 'Press a key or click to play';
+  }
+  function yourTurn() {                              // the bot stopped: say so beside the game, and ring the frame once
+    railState();
+    if (reduced) return;
+    if (rail && rail.say.animate) {
+      rail.say.animate([{ transform: 'scale(.6)', opacity: 0 }, { transform: 'scale(1.12)', opacity: 1, offset: 0.6 }, { transform: 'none' }], 560);
+    }
+    root.classList.remove('wd-yours'); void root.offsetWidth; root.classList.add('wd-yours');
+  }
+  function did(m) {                                  // the visitor just did move m: tick it off with a little burst
+    var i = FOCI.indexOf(m), b, j;
+    if (!rail || mode !== 'player' || rail.done[m]) return;
+    rail.done[m] = 1; rail.n++;
+    rail.items[i].classList.add('done');
+    if (i === rail.step) rail.card.classList.add('is-done');
+    railState();
+    if (!reduced) {                                  // pixel bits fly out of the tick
+      b = document.createElement('span'); b.className = 'tr-burst';
+      for (j = 0; j < 10; j++) {
+        b.innerHTML += '<i style="--x:' + (Math.cos(j * 0.63) * rnd(14, 26)).toFixed(1) + 'px;--y:' + (Math.sin(j * 0.63) * rnd(14, 26)).toFixed(1) +
+          'px;background:' + ['#ffb340', '#ff6a3d', '#ff3d77', '#a259ff', '#6cc27f'][j % 5] + '"></i>';
+      }
+      rail.items[i].firstChild.appendChild(b);
+      setTimeout(function () { b.parentNode.removeChild(b); }, 800);
+    }
+    if (rail.n === 6) celebrate();
+  }
+  function celebrate() {                             // all six: pixel confetti in the game, a friendly line and Download beside it
+    rail.el.classList.add('is-done');
+    setTimeout(function () { if (rail.line) rail.line.textContent = 'That’s every move. You’re ready for the real thing.'; }, 60);
+    if (reduced) return;
+    var C = ['#ffb340', '#ff6a3d', '#ff3d77', '#a259ff', '#5bb5e0', '#6cc27f', '#e8b83a', '#ffffff'];
+    burst(hero.x, hero.y, 12, 30, C, 50, 120, 1.4, true);   // a pop of colour from the hero, and a shower from the top
+    for (var i = 0; i < 90; i++) {
+      var y = rnd(BY0, BY1);
+      parts.push({ x: rnd(4, W - 4), y: y, z: y + rnd(-50, 40), vx: rnd(-18, 18), vy: 0, vz: rnd(-30, 10), g: 90, t: rnd(2, 3.2), s: i % 3 ? 1 : 2, e: true, c: C[i % 8] });
+    }
+    flashes.push({ x: hero.x, y: hero.y - 6, r: 130, t: 0.7, max: 0.7, rgb: [255, 196, 120] });
+  }
+
+  /* ---------- the stage: where it fits the screen it holds still for a few scrolls, and the scroll picks the move ---------- */
+
+  var refit = function () {}, jumpTo = null;
+  function initStage() {
+    var sec = document.getElementById('try'), pin = sec && sec.querySelector('.try-pin'), frame = root.parentNode, grid = frame.parentNode;
+    var nav = document.getElementById('localnav'), de = document.documentElement, top = 0, len = 1, ticking = false, on = false, size;
+    if (!rail || !pin || !/\bdemo-wrap\b/.test(grid.className)) return;
+    sec.classList.add('tp-on');                      // the list sits beside the game (under it on narrow screens)
+    if (reduced || !de.classList.contains('motion') || !window.IntersectionObserver) return;   // plain flow
+    function widest(lean) {                          // the widest game for which the whole stage fits the screen (0: none)
+      root.classList.toggle('wd-lean', lean);
+      grid.style.removeProperty('--gw');
+      var room = de.clientHeight - (nav ? nav.offsetHeight : 0) - 28, w = frame.offsetWidth, min = Math.min(460, w * 0.8);
+      for (var i = 0; i < 6; i++) {
+        sized.w = 0; sized();
+        var h = grid.offsetHeight;
+        if (h <= room) return w;
+        w = Math.floor(w - (h - room) * 16 / 9) - 2;   // only the picture grows with the width
+        if (w < min) return 0;
+        grid.style.setProperty('--gw', w + 'px');
+      }
+      return 0;
+    }
+    function update() {
+      ticking = false;
+      if (rail.pinned) setStep(clamp(Math.floor((window.pageYOffset - top) / len * 6), 0, 5));
+    }
+    function measure() {                             // where the pinned stretch starts, and how long it is
+      top = pin.getBoundingClientRect().top + window.pageYOffset;
+      len = Math.max(1, pin.offsetHeight - de.clientHeight);
+      update();
+    }
+    function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(update); } }
+    jumpTo = function (i) {                          // a move picked from the list: straight to the middle of its stretch,
+      measure();                                     // in one jump (no smooth scroll), so the moves between never play
+      var b = de.style.scrollBehavior;
+      de.style.scrollBehavior = 'auto';
+      window.scrollTo(0, top + len * (i + 0.5) / 6);
+      de.style.scrollBehavior = b;
+      setStep(i);
+    };
+    refit = function () {                            // the whole HUD, unless dropping "Game sees" buys a much bigger picture
+      var full = widest(false), lean = widest(true);
+      if (full && full >= lean * 0.86) widest(false);
+      else if (!lean) { root.classList.remove('wd-lean'); grid.style.removeProperty('--gw'); sized.w = 0; sized(); }
+      rail.pinned = !!(full || lean);
+      sec.classList.toggle('tp-pin', rail.pinned);
+      size = window.innerWidth + 'x' + de.clientHeight;
+      measure();
+    };
+    refit();
+    new IntersectionObserver(function (es) {         // the scroll is only watched while the stage is near
+      var v = es[es.length - 1].isIntersecting;
+      if (v) measure();
+      if (v !== on) window[(on = v) ? 'addEventListener' : 'removeEventListener']('scroll', onScroll, { passive: true });
+    }).observe(pin);
+    window.addEventListener('resize', function () {   // not when a phone's toolbar comes and goes
+      if (size !== window.innerWidth + 'x' + de.clientHeight) requestAnimationFrame(refit);
+    });
+    window.addEventListener('load', refit);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
   }
 
   /* ---------- loop ---------- */
 
-  function shouldRun() { return visible && !document.hidden && (!reduced || mode === 'player'); }
+  function shouldRun() { return intro >= 0 && visible && !document.hidden && (!reduced || mode === 'player'); }
   function schedule() { if (!raf && shouldRun()) raf = requestAnimationFrame(frame); }
   function frame(ts) {
     raf = 0;
@@ -1406,8 +1699,14 @@
     staticScene();
     var mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
     reduced = !!(mq && mq.matches);
+    if (!reduced && 'IntersectionObserver' in window) { intro = -1; root.classList.add('wd-off'); }   // off until it scrolls in
     if (mq) {
-      var onMq = function () { reduced = mq.matches; if (reduced && mode !== 'player') { render(); hud(); } schedule(); };
+      var onMq = function () {
+        reduced = mq.matches;
+        if (reduced && intro < INTRO) { settle(); staticScene(); }
+        if (reduced && mode !== 'player') { render(); hud(); }
+        schedule();
+      };
       if (mq.addEventListener) mq.addEventListener('change', onMq); else if (mq.addListener) mq.addListener(onMq);
     }
     if (window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches) root.classList.add('wd-coarse');
@@ -1427,14 +1726,20 @@
     cv.addEventListener('pointermove', pmove);
     cv.addEventListener('pointerup', pup);
     cv.addEventListener('pointercancel', pup);
+    ui.frame.addEventListener('pointerenter', function (e) { hover = e.pointerType === 'mouse'; });
+    ui.frame.addEventListener('pointerleave', function () { hover = false; });
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (es) {
         var e = es[es.length - 1];
         visible = e.isIntersecting;
         onscreen = visible && (e.intersectionRatio >= 0.5 || e.intersectionRect.height >= 0.5 * (window.innerHeight || 1));
+        if (intro < 0 && (e.intersectionRatio >= 0.6 || e.intersectionRect.height >= 0.6 * (window.innerHeight || 1))) arrive();
         schedule();
-      }, { threshold: [0, 0.25, 0.5, 0.75, 1] }).observe(cv);
+      }, { threshold: [0, 0.25, 0.5, 0.6, 0.75, 1] }).observe(cv);
     }
+    [initRail, initStage].forEach(function (f) {    // the extras start on their own: if one fails, the game still runs
+      try { f(); } catch (err) { if (window.console) console.error('wasdmod demo: ' + f.name + ' did not start', err); }
+    });
     render();
     hud();
     schedule();

@@ -222,6 +222,7 @@ kbd.wide { min-width: 4.2em; }
   transform: translateY(.04em);
 }
 .cta-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 30px; }
+.cta-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 28px; }
 
 /* ------------------------------------------------------------------ */
 /* Local nav                                                           */
@@ -1302,36 +1303,115 @@ kbd.wide { min-width: 4.2em; }
 }
 
 /* ------------------------------------------------------------------ */
-/* Editor showcase (pinned zoom + callouts)                            */
+/* Editor tour: a live copy of the editor (editor-snap.html), pinned   */
+/* while six steps play, each on its own timer (editor-tour.js)        */
 /* ------------------------------------------------------------------ */
 .editor { position: relative; padding: clamp(100px, 14vh, 160px) 0 clamp(80px, 10vh, 120px); }
 .editor-head { text-align: center; }
 .editor-head .lede { margin: 24px auto 0; }
-.editor-figure { --shot-w: min(1120px, 100vw - 2 * var(--gutter), (100vh - var(--nav-h) - 96px) * 1.426); width: var(--shot-w); margin: clamp(40px, 6vh, 64px) auto 0; }
-.editor-frame { position: relative; transform-origin: 50% 0; }
-.editor-shot {
+.ed-fig { --ed-w: min(1120px, 100vw - 2 * var(--gutter)); --ed-step: 55vh; margin: clamp(40px, 6vh, 64px) 0 0; }
+.ed-pin { position: relative; }
+.ed-stage { position: relative; width: var(--ed-w); margin: 0 auto; }
+.ed-window {
+  container-type: inline-size;
   position: relative;
-  border-radius: 12px;
   overflow: hidden;
-  background: #f3f3f3;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .14), 0 50px 120px -30px rgba(0, 0, 0, .9), 0 30px 160px -40px rgba(255, 106, 61, .38);
+  border-radius: 8px;
+  background: #0b0b0d;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .14), 0 50px 120px -30px rgba(0, 0, 0, .9), 0 30px 160px -40px rgba(255, 106, 61, .34);
 }
-.editor-shot img { display: block; width: 100%; transform-origin: 0 0; }
-.editor-figure figcaption { margin-top: 20px; text-align: center; font-size: 14px; line-height: 1.43; color: var(--text-2); }
-.rings { position: absolute; inset: 0; pointer-events: none; }
-.ring { position: absolute; inset: 0; opacity: 0; transition: opacity .5s var(--ease); }
-.ring.on { opacity: 1; }
-.ring i { position: absolute; display: block; background: rgba(0, 0, 0, .58); }
-.ring b { position: absolute; display: block; border-radius: 6px; box-shadow: 0 0 0 2px #ff8a3d, 0 0 26px 4px rgba(255, 106, 61, .5); }
-.callouts { counter-reset: none; }
-.callouts li { display: flex; align-items: flex-start; gap: 10px; }
-.cn {
+/* Windows 11's dark title bar; the editor's window takes the page's own colour */
+.ed-bar {
+  display: flex;
+  align-items: center;
+  gap: clamp(5px, .7cqw, 9px);
+  height: clamp(20px, 2.5cqw, 32px);
+  padding-left: clamp(7px, .9cqw, 12px);
+  font: 400 clamp(9px, .94cqw, 12px)/1 "Segoe UI Variable Text", "Segoe UI", var(--font);
+  letter-spacing: 0;
+  color: rgba(255, 255, 255, .9);
+  background: #0b0b0d;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.ed-bar img { width: clamp(10px, 1.25cqw, 16px); height: auto; image-rendering: pixelated; }
+.ed-title { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ed-ctl { display: flex; align-self: stretch; align-items: center; }
+.ed-ctl svg { box-sizing: content-box; width: clamp(7px, .78cqw, 10px); height: auto; padding: 0 clamp(9px, 1.4cqw, 18px); }
+.ed-view { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: #0b0b0d; }
+.ed-view > img, .ed-view noscript img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* the copy is laid out at the editor's own 1280 x 960 and scaled to the window (editor-tour.js sets --ed-k) */
+.ed-host {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1280px;
+  height: 960px;
+  transform-origin: 0 0;
+  transform: scale(var(--ed-k, .5));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .7s var(--ease);
+}
+.ed-fig.is-live .ed-host { opacity: 1; }
+/* the pointer that clicks through the steps (its tip is the point) */
+.ed-ptr {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  top: 0;
+  width: 22px;
+  height: 22px;
+  margin: -2px 0 0 -4px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(var(--px, 0px), var(--py, 0px));
+  transition-property: opacity, transform;
+  transition-duration: .3s, .55s;
+  transition-timing-function: ease, cubic-bezier(.45, 0, .2, 1);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .55));
+}
+.ed-ptr.on { opacity: 1; }
+.ed-ptr svg { display: block; width: 100%; height: 100%; transform-origin: 20% 10%; transition: transform .12s; }
+.ed-ptr.down svg { transform: scale(.84); }
+.ed-ptr::after { content: ""; position: absolute; left: -7px; top: -9px; width: 22px; height: 22px; border: 2px solid rgba(255, 255, 255, .85); border-radius: 50%; opacity: 0; }
+.ed-ptr.click::after { animation: ed-ripple .5s ease-out; }
+@keyframes ed-ripple { from { opacity: .9; transform: scale(.3); } to { opacity: 0; transform: scale(1.5); } }
+/* the caption: beside the lit part on wide screens, under the window on narrow ones */
+.ed-cap {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 290px;
+  padding: 15px 18px 16px 14px;
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  color: var(--text-2);
+  background: rgba(28, 28, 30, .88);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .12), 0 24px 60px rgba(0, 0, 0, .6);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(var(--cx, 0px), var(--cy, 0px)) translate(var(--co, 0px), var(--cv, 0px));
+  transition: opacity .35s var(--ease), transform .6s var(--ease);
+}
+.ed-cap.on { opacity: 1; transform: translate(var(--cx, 0px), var(--cy, 0px)); }
+.ed-cap-t { min-width: 0; }
+.ed-cap b { display: block; margin-bottom: 3px; font-size: 17px; line-height: 1.3; color: var(--text); }
+.ed-cap-n, .ed-steps li::before {
   flex: none;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  margin-top: -1px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   font-size: 12px;
   font-weight: 700;
@@ -1339,39 +1419,10 @@ kbd.wide { min-width: 4.2em; }
   color: #1e0f05;
   background: linear-gradient(135deg, #ffb340, #ff6a3d);
 }
-/* static list (reduced motion / no JS) */
-html:not(.motion) .callouts { display: grid; gap: 14px; margin-top: 28px; }
-html:not(.motion) .callouts li { font-size: 17px; color: var(--text-2); }
-
-/* motion: the screenshot zooms in once it's in view, then the callouts take turns (site.js) */
-.motion .editor-frame { opacity: .3; transform: translateY(60px) scale(.84); transition: opacity 1s var(--ease), transform 1.3s var(--ease); }
-.motion .editor-figure.is-in .editor-frame { opacity: 1; transform: none; }
-.motion .callouts { position: absolute; inset: 0; pointer-events: none; }
-.motion .callouts li {
-  position: absolute;
-  left: var(--lx);
-  top: var(--ly);
-  width: max-content;
-  max-width: 250px;
-  padding: 11px 16px 12px 12px;
-  border-radius: 14px;
-  font-size: 15px;
-  line-height: 1.34;
-  font-weight: 600;
-  letter-spacing: -.01em;
-  color: var(--text);
-  background: rgba(30, 30, 32, .9);
-  -webkit-backdrop-filter: blur(18px) saturate(1.6);
-  backdrop-filter: blur(18px) saturate(1.6);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .12), 0 20px 40px rgba(0, 0, 0, .45);
-  opacity: 0;
-  transform: translateY(10px) scale(.97);
-  transition: opacity .45s var(--ease), transform .6s var(--ease);
-}
-.motion .callouts li[data-at="left"], .motion .callouts li[data-at="below-end"] { translate: -100% 0; }
-.motion .callouts li.on { opacity: 1; transform: none; }
-.callout-dots { display: flex; justify-content: center; gap: 10px; margin-top: 22px; }
-.callout-dot {
+.ed-try { display: block; margin-top: 6px; color: var(--text); }
+.ed-try kbd { font-size: 11px; }
+.ed-dots { display: flex; justify-content: center; gap: 10px; margin-top: 18px; }
+.ed-dot {
   display: grid;
   place-items: center;
   width: 32px;
@@ -1387,35 +1438,61 @@ html:not(.motion) .callouts li { font-size: 17px; color: var(--text-2); }
   cursor: pointer;
   transition: background-color .25s, color .25s, transform .2s var(--ease);
 }
-.callout-dot:hover { background: rgba(255, 255, 255, .16); color: var(--text); }
-.callout-dot[aria-pressed="true"] { color: #1e0f05; background: linear-gradient(135deg, #ffb340, #ff6a3d); }
-.callout-dot:active { transform: scale(.94); }
-.callout-dot:focus-visible { border-radius: 50%; }
-html:not(.motion) .callout-dots { display: none; }
-
-@media (max-width: 734px) {
-  .editor-figure { --shot-w: calc(100vw - 2 * var(--gutter)); }
-  .motion .editor-shot img { transition: transform .9s var(--ease); }
-  .motion .rings { display: none; }
-  .motion .callouts { position: relative; inset: auto; display: grid; margin-top: 18px; min-height: 72px; }
-  .motion .callouts li {
+.ed-dot:hover { background: rgba(255, 255, 255, .16); color: var(--text); }
+.ed-dot[aria-current="step"] { color: #1e0f05; background: linear-gradient(135deg, #ffb340, #ff6a3d); }
+.ed-dot:active { transform: scale(.94); }
+.ed-dot:focus-visible { border-radius: 50%; }
+/* the steps as a list (reduced motion, no JavaScript); screen readers get it in the tour too */
+.ed-steps { display: grid; gap: 14px; width: min(var(--w-text), 100% - 2 * var(--gutter)); margin: 30px auto 0; counter-reset: ed-step; }
+.ed-steps li { position: relative; padding-left: 36px; font-size: 17px; line-height: 1.45; color: var(--text-2); counter-increment: ed-step; }
+.ed-steps li::before { content: counter(ed-step); position: absolute; left: 0; top: 0; }
+.ed-steps b { color: var(--text); }
+.ed-fig figcaption { margin-top: 20px; text-align: center; font-size: 14px; line-height: 1.43; color: var(--text-2); }
+.ed-fig:not(.is-tour) :is(.ed-cap, .ed-dots) { display: none; }
+/* the tour: the window holds still for seven short screens while the steps play */
+.ed-fig.is-tour { --ed-w: min(1120px, 100vw - 2 * var(--gutter), (100vh - var(--nav-h) - 128px) * 4 / 3); }
+@supports (height: 100svh) { .ed-fig.is-tour { --ed-w: min(1120px, 100vw - 2 * var(--gutter), (100svh - var(--nav-h) - 128px) * 4 / 3); } }
+.ed-fig.is-tour .ed-track { height: calc(100vh + 7 * var(--ed-step)); }
+.ed-fig.is-tour .ed-pin {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100vh;
+  height: 100svh;
+  padding: var(--nav-h) 0 10px;
+}
+.ed-fig.is-tour .ed-steps { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ed-fig.is-tour .ed-stage { opacity: .3; transform: translateY(60px) scale(.88); transition: opacity 1s var(--ease), transform 1.3s var(--ease); }
+.ed-fig.is-tour.is-in .ed-stage { opacity: 1; transform: none; }
+@media (max-width: 999px) {
+  .ed-fig.is-tour { --ed-w: min(100vw - 2 * var(--gutter), (100vh - var(--nav-h) - 236px) * 4 / 3); }
+  @supports (height: 100svh) { .ed-fig.is-tour { --ed-w: min(100vw - 2 * var(--gutter), (100svh - var(--nav-h) - 236px) * 4 / 3); } }
+  .ed-cap {
     position: relative;
-    left: auto;
-    top: auto;
-    grid-area: 1 / 1;
+    z-index: auto;
     width: auto;
-    max-width: none;
-    padding: 0;
-    font-size: 17px;
-    line-height: 1.4;
+    min-height: 6.4em;
+    margin: 16px 0 0;
+    padding: 0 2px;
+    border-radius: 0;
+    font-size: 16px;
     background: none;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     box-shadow: none;
-    translate: none !important;
+    transform: translateY(8px);
   }
-  .motion .callouts .cn { width: 24px; height: 24px; margin-top: 0; }
+  .ed-cap.on { transform: none; }
+  .ed-dots { margin-top: 10px; }
 }
+@media (max-width: 734px) {
+  .ed-fig { --gutter: 16px; --ed-step: 42vh; }
+  .ed-ptr { width: 18px; height: 18px; }
+  .ed-steps li { font-size: 16px; }
+}
+@media (hover: none) and (pointer: coarse) { .ed-try { display: none; } }
 
 /* ------------------------------------------------------------------ */
 /* Key list (F9)                                                       */
