@@ -1,0 +1,633 @@
+/* wasdmod key map (markup built by keymap.js). Everything is scoped to #keymap. */
+@property --km-c { syntax: "<color>"; inherits: true; initial-value: #6e6e73; }
+
+#keymap { display: block; width: 100%; max-width: 980px; margin-inline: auto; }
+#keymap .km {
+  container: km / inline-size;
+  position: relative;
+  overflow-x: clip; /* nothing here (a tooltip, the dragged keycap) can widen the page */
+  overflow-clip-margin: 8px;
+  color: var(--text, #f5f5f7);
+  font-family: var(--font, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif);
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: normal;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+  --km-ease: cubic-bezier(.22, .8, .24, 1);
+  --km-st: 0ms; /* stagger per key unit of distance from WASD; set while the keys change */
+}
+#keymap .km.is-static *, #keymap .km.is-static *::before, #keymap .km.is-static *::after { transition: none !important; }
+#keymap .km.is-switching { --km-st: 10ms; }
+#keymap .km.is-revealing { --km-st: 32ms; }
+#keymap [data-cat="move"] { --km-c: var(--move, #5bb5e0); }
+#keymap [data-cat="action"] { --km-c: var(--action, #f19a2e); }
+#keymap [data-cat="menu"] { --km-c: var(--menu, #6cc27f); }
+#keymap [data-cat="mod"] { --km-c: var(--mod, #a68cf0); }
+
+/* ---- Segmented controls ---- */
+#keymap .km-bar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px 16px; }
+#keymap .km-lay { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px; max-width: 100%; }
+#keymap .km-seg {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(118, 118, 128, .2);
+  box-shadow: inset 0 0 0 .5px var(--hairline, rgba(255, 255, 255, .1));
+}
+#keymap .km-seg [hidden] { display: none; }
+#keymap .km-pill { /* placed under the chosen segment by keymap.js (--px, --pw) */
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: var(--pw, 0);
+  border-radius: 999px;
+  background: #636366;
+  box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .22), 0 3px 8px rgba(0, 0, 0, .3), 0 1px 1px rgba(0, 0, 0, .2);
+  transform: translateX(var(--px, 3px));
+  transition: transform .45s var(--km-ease), width .45s var(--km-ease);
+}
+@container km (max-width: 520px) { /* three segments fit a phone: each as wide as its words */
+  #keymap .km-seg { grid-auto-columns: auto; }
+  #keymap .km-seg button { padding-inline: 14px; }
+}
+@container km (max-width: 340px) { #keymap .km-seg button { padding-inline: 10px; font-size: 13px; } }
+#keymap .km-reset {
+  all: unset;
+  padding: 8px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--link, #2997ff);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+#keymap .km-reset[hidden] { display: none; }
+@media (hover: hover) { #keymap .km-reset:hover { text-decoration: underline; } }
+#keymap .km-reset:focus-visible { outline: 2px solid var(--blue, #0071e3); outline-offset: 1px; }
+#keymap .km-seg button {
+  all: unset;
+  box-sizing: border-box;
+  position: relative;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--text-2, #a1a1a6);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .3s;
+}
+#keymap .km-seg button:hover { color: var(--text, #f5f5f7); }
+#keymap .km-seg button[aria-checked="true"] { color: #fff; }
+#keymap .km-seg button:focus-visible { outline: 2px solid var(--blue, #0071e3); outline-offset: 1px; }
+/* pressing the chosen segment squeezes the pill, as on iOS */
+#keymap .km-seg:has(button[aria-checked="true"]:active) .km-pill { transform: translateX(var(--px, 3px)) scale(.95); transition-duration: .2s; }
+#keymap .km-about {
+  max-width: 470px; /* every caption wraps to two balanced lines */
+  margin: 18px auto 0;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: normal;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--text-2, #a1a1a6);
+}
+#keymap .km-about-s { display: grid; } /* all three captions share one cell, so switching never shifts the page */
+#keymap .km-about-s > * { grid-area: 1 / 1; align-self: center; visibility: hidden; }
+#keymap .km-about-s > .is-on { visibility: visible; }
+@keyframes km-in { from { opacity: 0; transform: translateY(3px); } }
+#keymap .km-about-s > .is-in { animation: km-in .45s var(--km-ease); }
+#keymap .km-hint { display: block; margin-top: 2px; color: var(--text-3, #6e6e73); }
+
+/* ---- Stage: keyboard, mouse, legend. --u = one key unit, scaled to the column ---- */
+#keymap .km-stage {
+  --u: 40px;
+  --mu: 30px;
+  --g: calc(var(--u) * .1);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas: "kb kb" "mouse legend";
+  justify-content: center;
+  align-items: center;
+  gap: 32px clamp(28px, 8cqw, 56px);
+  margin-top: clamp(28px, 4cqw, 40px);
+}
+@supports (width: 1cqw) {
+  #keymap .km-stage { --u: max(17px, min(54px, 100cqw / 15.6)); --mu: clamp(22px, calc(var(--u) * 1.15), 34px); }
+}
+@container km (min-width: 760px) {
+  #keymap .km-stage {
+    --u: min(54px, 100cqw / 19.9);
+    --mu: var(--u);
+    grid-template-columns: auto auto;
+    grid-template-areas: "kb mouse" "legend legend";
+    column-gap: var(--u);
+    row-gap: calc(var(--u) * .75);
+  }
+}
+@container km (max-width: 280px) { #keymap .km-kbwrap { overflow-x: auto; } }
+@supports not (width: 1cqw) { #keymap .km-kbwrap { overflow-x: auto; } }
+#keymap .km-kbwrap { grid-area: kb; max-width: 100%; justify-self: center; }
+#keymap .km-deck {
+  width: max-content;
+  padding: calc(var(--u) * .3);
+  border-radius: calc(var(--u) * .36);
+  background: linear-gradient(#151517, #0d0d0f);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .075), inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+#keymap .km-kb {
+  position: relative;
+  width: calc(15 * var(--u) - var(--g));
+  height: calc(var(--rows, 5.62) * var(--u) - var(--g));
+  transition: opacity .35s, filter .35s;
+}
+#keymap .km-deck.is-swap .km-kb { opacity: 0; filter: blur(3px); transition-duration: .15s; }
+
+/* ---- Key caps (and mouse buttons) ---- */
+#keymap .km-key {
+  all: unset;
+  box-sizing: border-box;
+  position: absolute;
+  z-index: 0;
+  left: calc(var(--x) * var(--u));
+  top: calc(var(--y) * var(--u));
+  width: calc(var(--w) * var(--u) - var(--g));
+  height: calc(var(--h) * var(--u) - var(--g));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--u) * .13);
+  background: linear-gradient(180deg, #262628, var(--surface-3, #1d1d1f) 55%, #19191b);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), inset 0 -1px 0 rgba(0, 0, 0, .35), 0 1px 0 #000, 0 2px 3px rgba(0, 0, 0, .45);
+  color: var(--text-3, #6e6e73);
+  font-size: clamp(9px, calc(var(--u) * .27), 14px);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  opacity: .55;
+  --km-dl: calc(var(--d, 0) * var(--km-st));
+  transition: opacity .5s var(--km-ease) var(--km-dl), color .5s var(--km-dl), --km-c .5s var(--km-dl), filter .2s, transform .15s;
+}
+#keymap .km-key * { pointer-events: none; }
+#keymap .km-key.is-on { opacity: 1; color: var(--text, #f5f5f7); }
+#keymap .km-key::before { /* tinted cap */
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, .05);
+  background:
+    radial-gradient(calc(var(--u) * .9) calc(var(--u) * .7) at 50% 108%, color-mix(in srgb, var(--km-c) 42%, transparent), transparent),
+    color-mix(in srgb, var(--km-c) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--km-c) 34%, transparent), 0 0 calc(var(--u) * .3) color-mix(in srgb, var(--km-c) 16%, transparent);
+  opacity: 0;
+  transition: opacity .5s var(--km-ease) var(--km-dl);
+}
+#keymap .km-key::after { /* glowing underline */
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--u) * .08);
+  width: calc(var(--u) * .44);
+  height: max(2px, calc(var(--u) * .045));
+  margin-left: calc(var(--u) * -.22);
+  border-radius: 9px;
+  background: var(--km-c);
+  box-shadow: 0 0 calc(var(--u) * .16) var(--km-c);
+  opacity: 0;
+  transform: scaleX(.2);
+  transition: opacity .4s var(--km-dl), transform .55s cubic-bezier(.3, 1.5, .5, 1) var(--km-dl);
+}
+#keymap .km-key.is-on::before, #keymap .km-key.is-on::after { opacity: 1; }
+#keymap .km-key.is-on::after { transform: none; }
+#keymap .km-key.is-tip { z-index: 1; filter: brightness(1.3); transition-duration: .15s; }
+#keymap .km-key:not(.is-on).is-tip { opacity: .9; color: var(--text-2, #a1a1a6); }
+@media (hover: hover) { /* touch screens keep :hover after a tap; there the open tooltip (is-tip) lights the key */
+  #keymap .km-key:hover { z-index: 1; filter: brightness(1.3); transition-duration: .15s; }
+  #keymap .km-key:not(.is-on):hover { opacity: .9; color: var(--text-2, #a1a1a6); }
+}
+#keymap .km-key:active { transform: translateY(1px) scale(.98); }
+#keymap .km-key:focus-visible { z-index: 2; outline: 2px solid var(--blue, #0071e3); outline-offset: 2px; }
+/* unlit until the map scrolls into view */
+#keymap .km.is-pre .km-key { opacity: .25; color: var(--text-3, #6e6e73); }
+#keymap .km.is-pre .km-key::before, #keymap .km.is-pre .km-key::after { opacity: 0; }
+#keymap .km.is-pre .km-key::after { transform: scaleX(.2); }
+@keyframes km-flash { 35% { filter: brightness(1.9); } }
+#keymap .km.is-revealing .km-key.is-on::before { animation: km-flash .9s var(--km-ease) var(--km-dl) both; }
+/* legend / list highlight */
+#keymap .km.km-hl .km-key { transition-duration: .25s; }
+#keymap .km.km-hl .km-key:not(.is-hl) { opacity: .16; }
+#keymap .km.km-hl .km-key.is-hl { z-index: 1; filter: brightness(1.25); }
+/* a key pressed on your own keyboard */
+#keymap .km-key.is-down {
+  z-index: 2;
+  opacity: 1;
+  color: var(--text, #f5f5f7);
+  filter: brightness(1.5);
+  transform: translateY(calc(var(--u) * .05)) scale(.95);
+  transition-duration: .06s;
+}
+#keymap .km-key.is-down::before {
+  opacity: 1;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--km-c) 85%, #fff), 0 0 calc(var(--u) * .55) color-mix(in srgb, var(--km-c) 55%, transparent);
+  transition-duration: .06s;
+}
+#keymap .km-key:not(.is-on).is-down { --km-c: #c7c7cc; }
+
+/* moving keys: lit keys can be picked up; the targets light, the rest step back */
+#keymap .km-key.is-on:not(.is-fixed) { cursor: grab; }
+#keymap .km.is-dragging, #keymap .km.is-dragging .km-key { cursor: grabbing; }
+#keymap .km[data-dragcat="move"] { --km-dc: var(--move, #5bb5e0); }
+#keymap .km[data-dragcat="action"] { --km-dc: var(--action, #f19a2e); }
+#keymap .km[data-dragcat="menu"] { --km-dc: var(--menu, #6cc27f); }
+#keymap .km[data-dragcat="mod"] { --km-dc: var(--mod, #a68cf0); }
+#keymap .km.is-dragging .km-key { transition-duration: .2s; transition-delay: 0s; }
+#keymap .km.is-dragging .km-key.is-nodrop { opacity: .2; }
+#keymap .km.is-dragging .km-key:not(.is-nodrop):not(.is-lifted) { outline: 1px solid rgba(255, 255, 255, .14); outline-offset: -1px; }
+#keymap .km.is-dragging .km-key.is-lifted { opacity: .3; filter: saturate(.3); outline: 1px dashed rgba(255, 255, 255, .35); outline-offset: -1px; }
+#keymap .km.is-dragging .km-key.is-drop {
+  z-index: 3;
+  opacity: 1;
+  filter: brightness(1.35);
+  transform: scale(1.07);
+  outline: 2px solid var(--km-dc, #fff);
+  outline-offset: 2px;
+}
+#keymap .km.is-dragging .km-mb-l.is-drop, #keymap .km.is-dragging .km-mb-r.is-drop { transform: none; outline-offset: -3px; }
+@keyframes km-land { 0% { transform: scale(1.14); filter: brightness(1.8); } 100% { transform: none; filter: none; } }
+#keymap .km-key.is-landed { animation: km-land .5s var(--km-ease); }
+#keymap .km-mb-l.is-landed, #keymap .km-mb-r.is-landed { animation-name: km-flash; }
+/* the keycap that follows the pointer */
+#keymap .km-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 64px;
+  max-width: 220px;
+  padding: 9px 14px 10px;
+  border-radius: 14px;
+  background:
+    linear-gradient(color-mix(in srgb, var(--km-c) 22%, transparent), color-mix(in srgb, var(--km-c) 10%, transparent)),
+    linear-gradient(180deg, #2c2c2f, #1f1f22);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--km-c) 55%, transparent), inset 0 1px 0 rgba(255, 255, 255, .12),
+    0 0 24px color-mix(in srgb, var(--km-c) 30%, transparent), 0 18px 40px rgba(0, 0, 0, .55);
+  color: var(--text, #f5f5f7);
+  text-align: center;
+  pointer-events: none;
+}
+#keymap .km-ghost:not(.is-on) { display: none; }
+#keymap .km-ghost.is-on { animation: km-pop .18s var(--km-ease); }
+@keyframes km-pop { from { opacity: 0; scale: .8; } }
+#keymap .km-ghost b { font-size: 17px; font-weight: 600; line-height: 1.15; }
+#keymap .km-ghost span { font-size: 12.5px; font-weight: 500; line-height: 1.3; color: color-mix(in srgb, var(--km-c) 60%, #fff); }
+#keymap .km-ghost i { font-size: 12px; font-style: normal; line-height: 1.3; color: var(--text-2, #a1a1a6); }
+#keymap .km-ghost i:empty { display: none; }
+
+/* legends */
+#keymap .km-two { display: flex; flex-direction: column; align-items: center; gap: .22em; font-size: .84em; }
+#keymap .km-alt { opacity: .6; }
+#keymap .km-word { font-size: max(8px, .72em); letter-spacing: .01em; }
+#keymap .km-mm { display: flex; flex-direction: column; align-items: center; gap: .32em; }
+#keymap .km-mm .km-word { font-size: max(8px, .62em); }
+#keymap .km-f { padding-bottom: calc(var(--u) * .06); font-size: clamp(8px, calc(var(--u) * .22), 12px); }
+#keymap .km-f::after { /* the short function row: a slimmer bar, clear of the legend */
+  bottom: max(1px, calc(var(--u) * .045));
+  width: calc(var(--u) * .36);
+  height: max(1.5px, calc(var(--u) * .04));
+  margin-left: calc(var(--u) * -.18);
+}
+#keymap .km-logo { display: block; width: 1em; height: 1em; fill: currentColor; }
+#keymap .km-short { display: none; }
+@container km (max-width: 560px) {
+  #keymap .km-full, #keymap .km-alt { display: none; }
+  #keymap .km-short { display: inline; }
+}
+
+/* ---- Mouse (top view, front up; side buttons on the left) ---- */
+#keymap .km-mouse {
+  --u: var(--mu);
+  grid-area: mouse;
+  position: relative;
+  justify-self: end;
+  width: calc(var(--mu) * 3.3);
+  height: calc(var(--mu) * 5.8);
+}
+#keymap .km-mouse-body {
+  position: absolute;
+  inset: 0 0 0 calc(var(--mu) * .3);
+  border-radius: 50% 50% 46% 46% / 33% 33% 38% 38%;
+  overflow: hidden;
+  background: radial-gradient(80% 45% at 50% 52%, rgba(255, 255, 255, .045), transparent 70%), linear-gradient(#18181a, #0d0d0f);
+}
+#keymap .km-mouse-body::before { /* rim, drawn over the buttons */
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08), inset 0 1px 0 rgba(255, 255, 255, .07);
+  pointer-events: none;
+}
+#keymap .km-mouse-body::after { /* wheel slot */
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: calc(50% - var(--mu) * .3);
+  top: calc(var(--mu) * .4);
+  width: calc(var(--mu) * .6);
+  height: calc(var(--mu) * 1.34);
+  border-radius: 99px;
+  background: #050506;
+  box-shadow: inset 0 1px 2px #000, 0 0 0 1px rgba(255, 255, 255, .04);
+}
+#keymap .km-mb { border-radius: 0; }
+#keymap .km-mb-l, #keymap .km-mb-r { top: 0; width: calc(50% - var(--mu) * .03); height: 41%; }
+#keymap .km-mb-l { left: 0; border-bottom-left-radius: calc(var(--mu) * .08); }
+#keymap .km-mb-r { left: auto; right: 0; border-bottom-right-radius: calc(var(--mu) * .08); }
+#keymap .km-mb-l::after, #keymap .km-mb-r::after { bottom: calc(var(--mu) * .22); }
+#keymap .km-mb-l:focus-visible, #keymap .km-mb-r:focus-visible { outline-offset: -4px; }
+#keymap .km-mb-m {
+  z-index: 3;
+  left: calc(var(--mu) * 1.6);
+  top: calc(var(--mu) * .52);
+  width: calc(var(--mu) * .4);
+  height: calc(var(--mu) * 1.1);
+  border-radius: 99px;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, .09) 0 1px, transparent 1px 4px), linear-gradient(90deg, #121214, #2c2c2f 50%, #121214);
+}
+#keymap .km-mb-s {
+  z-index: 3;
+  left: calc(var(--mu) * .04);
+  width: calc(var(--mu) * .44);
+  height: calc(var(--mu) * .96);
+  border-radius: calc(var(--mu) * .22) calc(var(--mu) * .08) calc(var(--mu) * .08) calc(var(--mu) * .22);
+  font-size: clamp(9px, calc(var(--mu) * .22), 12px);
+}
+#keymap .km-mb-5 { top: calc(var(--mu) * 2.45); }
+#keymap .km-mb-4 { top: calc(var(--mu) * 3.5); }
+#keymap .km-mb-m::after, #keymap .km-mb-s::after { display: none; }
+#keymap .km-mb-m.is-on::before, #keymap .km-mb-s.is-on::before { background: color-mix(in srgb, var(--km-c) 38%, transparent); }
+
+/* ---- Legend ---- */
+#keymap .km-legend { grid-area: legend; justify-self: start; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+@container km (min-width: 760px) {
+  #keymap .km-mouse { justify-self: center; }
+  #keymap .km-legend { justify-self: center; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 8px; }
+}
+#keymap .km-leg {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-2, #a1a1a6);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .2s, background-color .2s;
+}
+#keymap .km-leg[aria-pressed="true"] { color: var(--text, #f5f5f7); background: rgba(255, 255, 255, .07); }
+@media (hover: hover) { #keymap .km-leg:hover { color: var(--text, #f5f5f7); background: rgba(255, 255, 255, .07); } }
+#keymap .km-leg:focus-visible { outline: 2px solid var(--blue, #0071e3); outline-offset: 2px; }
+#keymap .km-sw { flex: none; width: 14px; height: 3px; border-radius: 3px; background: var(--km-c); box-shadow: 0 0 6px var(--km-c); }
+
+/* ---- Export ---- */
+#keymap .km-export { display: grid; justify-items: center; gap: 10px; margin-top: clamp(28px, 4cqw, 40px); text-align: center; }
+#keymap .km-exp {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 10px 17px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text, #f5f5f7);
+  background: var(--surface-3, #1d1d1f);
+  box-shadow: inset 0 0 0 1px var(--hairline, rgba(255, 255, 255, .1)), inset 0 1px 0 rgba(255, 255, 255, .06);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color .2s, transform .15s;
+}
+#keymap .km-exp svg { width: 16px; height: 16px; fill: none; stroke: var(--link, #2997ff); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+@media (hover: hover) { #keymap .km-exp:hover { background: #2a2a2d; } }
+#keymap .km-exp:active { transform: scale(.97); }
+#keymap .km-exp:focus-visible { outline: 2px solid var(--blue, #0071e3); outline-offset: 2px; }
+#keymap .km-exp.is-done { background: color-mix(in srgb, var(--menu, #6cc27f) 22%, var(--surface-3, #1d1d1f)); }
+#keymap .km-exp-note { margin: 0; padding: 0; font-size: 12.5px; line-height: 1.5; letter-spacing: normal; color: var(--text-3, #6e6e73); }
+#keymap .km-exp-note span { white-space: nowrap; } /* one line on a desktop; on a phone it breaks between the three */
+
+/* ---- The list of every control: each row's keys, editable ---- */
+#keymap .km-list { margin-top: clamp(40px, 7cqw, 72px); }
+#keymap .km-more { display: none; }
+#keymap .km-list-hint { margin: 0 0 20px; padding: 0; font-size: 13px; line-height: 1.4; letter-spacing: normal; color: var(--text-3, #6e6e73); }
+#keymap .km-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 clamp(32px, 6cqw, 64px); }
+#keymap .km-group + .km-group { margin-top: 36px; }
+#keymap .km-gh {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: .02em;
+  color: var(--text-2, #a1a1a6);
+}
+#keymap .km-group dl, #keymap .km-row dt, #keymap .km-row dd { all: unset; }
+#keymap .km-group dl { display: block; }
+#keymap .km-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--hairline, rgba(255, 255, 255, .1));
+  transition: background-color .25s;
+}
+#keymap .km-row dt { display: block; font-size: 15px; line-height: 1.35; color: var(--text, #f5f5f7); }
+#keymap .km-note { display: block; margin-top: 2px; font-size: 13px; line-height: 1.35; color: var(--text-3, #6e6e73); }
+#keymap .km-row .km-keys { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; max-width: 62cqw; }
+#keymap .km-row .km-rowmsg { grid-column: 1 / -1; display: block; margin-top: 7px; font-size: 12.5px; line-height: 1.4; color: var(--text-2, #a1a1a6); }
+#keymap .km-row .km-rowmsg.is-warn { color: var(--warm-1, #ffb340); }
+#keymap .km-row.is-capturing { /* the row listening for a key; a mouse button pressed on it is the answer */
+  --km-cb: color-mix(in srgb, var(--blue, #0071e3) 12%, transparent);
+  border-top-color: transparent;
+  background: var(--km-cb);
+  box-shadow: -12px 0 0 var(--km-cb), 12px 0 0 var(--km-cb);
+}
+#keymap .km-row.is-capturing + .km-row { border-top-color: transparent; }
+#keymap .km-cw { position: relative; display: inline-flex; }
+#keymap .km-chip, #keymap .km-add {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+#keymap .km-chip {
+  color: var(--text, #f5f5f7);
+  background: linear-gradient(#28282b, var(--surface-3, #1d1d1f));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), inset 0 -2px 0 color-mix(in srgb, var(--km-c) 75%, transparent), 0 1px 0 #000;
+  transition: box-shadow .2s, background-color .2s, color .2s;
+}
+@media (hover: hover) { #keymap .km-chip:hover { background: linear-gradient(#333336, #262629); } }
+#keymap .km-chip:focus-visible, #keymap .km-add:focus-visible { outline: 2px solid var(--blue, #0071e3); outline-offset: 2px; }
+#keymap .km-row.is-key .km-chip { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), inset 0 -2px 0 var(--km-c), 0 0 12px color-mix(in srgb, var(--km-c) 35%, transparent); }
+@keyframes km-new { from { background-color: color-mix(in srgb, var(--km-c) 45%, transparent); } }
+#keymap .km-row.is-new .km-chip { animation: km-new 1.4s var(--km-ease); }
+#keymap .km-add { padding: 0 7px; color: var(--text-3, #6e6e73); font-size: 12.5px; transition: color .2s, background-color .2s; }
+@media (hover: hover) { #keymap .km-add:hover { color: var(--text, #f5f5f7); background: rgba(255, 255, 255, .07); } }
+#keymap .km-add.is-empty { color: var(--text-2, #a1a1a6); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2); }
+@keyframes km-listen { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue, #0071e3) 25%, transparent), inset 0 0 0 1px var(--link, #2997ff); } }
+#keymap .km-chip.is-listening, #keymap .km-add.is-listening {
+  min-width: 96px;
+  color: var(--link, #2997ff);
+  background: color-mix(in srgb, var(--blue, #0071e3) 16%, var(--surface-3, #1d1d1f));
+  box-shadow: 0 0 0 0 transparent, inset 0 0 0 1px var(--link, #2997ff);
+  animation: km-listen 1.6s ease-in-out infinite;
+}
+#keymap .km-x { /* remove a key: shown on hover (Delete on a focused key does the same) */
+  all: unset;
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text, #f5f5f7);
+  background: #48484a;
+  box-shadow: 0 0 0 2px var(--bg, #000), 0 2px 4px rgba(0, 0, 0, .4);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(.6);
+  transition: opacity .15s, transform .2s var(--km-ease), visibility 0s .2s;
+}
+@media (hover: hover) { #keymap .km-cw:hover .km-x { opacity: 1; visibility: visible; transform: none; transition: opacity .15s, transform .2s var(--km-ease); } }
+#keymap .km-row.is-capturing .km-x { opacity: 1; visibility: visible; transform: none; transition: opacity .15s, transform .2s var(--km-ease); }
+#keymap .km-chip.is-listening + .km-x { display: none; }
+#keymap .km-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@container km (max-width: 620px) {
+  #keymap .km-cols { grid-template-columns: 1fr; }
+  #keymap .km-col + .km-col { margin-top: 36px; }
+  #keymap .km-more {
+    all: unset;
+    box-sizing: border-box;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 2px;
+    border-top: 1px solid var(--hairline, rgba(255, 255, 255, .1));
+    border-bottom: 1px solid var(--hairline, rgba(255, 255, 255, .1));
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text, #f5f5f7);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #keymap .km-more:focus-visible { outline: 2px solid var(--blue, #0071e3); outline-offset: 2px; }
+  #keymap .km-chev { width: 8px; height: 8px; margin: -4px 6px 0 0; border: solid var(--text-2, #a1a1a6); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); transition: transform .35s var(--km-ease); }
+  #keymap .km-list.is-open .km-chev { transform: translateY(4px) rotate(-135deg); }
+  #keymap .km-list-body { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows .45s var(--km-ease), visibility 0s .45s; }
+  #keymap .km-list.is-open .km-list-body { grid-template-rows: 1fr; visibility: visible; transition: grid-template-rows .45s var(--km-ease); }
+  #keymap .km-list-body > .km-list-in { min-height: 0; overflow: hidden; }
+  #keymap .km-list.is-open .km-list-in { padding-top: 18px; }
+  #keymap .km-row .km-keys { max-width: 58cqw; }
+}
+
+/* ---- Tooltip ---- */
+#keymap .km-tip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(300px, calc(100vw - 16px));
+  padding: 9px 13px 10px;
+  border-radius: 12px;
+  background: rgba(42, 42, 46, .95);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  backdrop-filter: blur(20px) saturate(1.8);
+  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .16), 0 12px 32px rgba(0, 0, 0, .5), 0 2px 8px rgba(0, 0, 0, .3);
+  color: var(--text, #f5f5f7);
+  font-size: 14px;
+  line-height: 1.35;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px) scale(.96);
+  transform-origin: var(--ax, 50%) 100%;
+  transition: opacity .15s, transform .2s var(--km-ease), visibility 0s .2s;
+}
+#keymap .km-tip.is-below { transform: translateY(-4px) scale(.96); transform-origin: var(--ax, 50%) 0; }
+#keymap .km-tip.is-on { opacity: 1; visibility: visible; transform: none; transition: opacity .15s, transform .2s var(--km-ease); }
+#keymap .km-tip.is-on.is-glide { transition: opacity .15s, transform .2s var(--km-ease), left .2s var(--km-ease), top .2s var(--km-ease); }
+#keymap .km-tip::after { /* arrow */
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: calc(var(--ax, 50%) - 8px);
+  width: 16px;
+  height: 7px;
+  background: inherit;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+#keymap .km-tip.is-below::after { top: auto; bottom: 100%; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+#keymap .km-tip-k { font-weight: 600; color: color-mix(in srgb, var(--km-c) 70%, #fff); }
+#keymap .km-tip-d { margin-top: 3px; font-size: 12.5px; color: var(--text-2, #a1a1a6); }
+#keymap .km-tip-d:empty { display: none; }
+#keymap .km-tip.is-muted .km-tip-k { color: #fff; }
+#keymap .km-tip.is-muted .km-tip-a { color: var(--text-2, #a1a1a6); }
+
+@media (forced-colors: active) { /* high-contrast modes drop the tints: outline the keys that do something */
+  #keymap .km-key { border: 1px solid GrayText; }
+  #keymap .km-key.is-on { border: 2px solid Highlight; }
+  #keymap .km-pill { background: Highlight; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #keymap .km *, #keymap .km *::before, #keymap .km *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation: none !important; }
+}

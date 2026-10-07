@@ -1,0 +1,394 @@
+/* wasdmod "Try it" demo (demo.js builds the markup). Everything is scoped under
+   #demo and .wd- classes so nothing leaks into the page. */
+#demo {
+  position: relative;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  color: var(--text, #f5f5f7);
+  font-family: var(--font, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+  letter-spacing: 0;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#demo *, #demo *::before, #demo *::after { box-sizing: border-box; }
+
+#demo .wd-frame {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--radius-l, 28px);
+  border: 1px solid var(--hairline, rgba(255, 255, 255, .1));
+  background: var(--surface, #101012);
+  box-shadow: 0 40px 100px -40px rgba(255, 106, 61, .22), 0 24px 60px -30px rgba(162, 89, 255, .25);
+}
+
+/* Game */
+#demo .wd-stage { position: relative; background: #07060b; }
+#demo .wd-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  cursor: crosshair;
+  touch-action: pan-y;
+  outline: none;
+}
+#demo.wd-playing .wd-canvas { touch-action: none; }
+
+#demo .wd-pill {
+  position: absolute;
+  top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--text, #f5f5f7);
+  background: rgba(12, 11, 16, .62);
+  border: 1px solid rgba(255, 255, 255, .12);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  pointer-events: none;
+}
+#demo .wd-badge { left: 14px; }
+#demo .wd-score { right: 14px; font-variant-numeric: tabular-nums; }
+#demo .wd-score b { font: 400 16px/1 var(--pixel, ui-monospace, Menlo, monospace); color: var(--text, #f5f5f7); }
+#demo .wd-score span { color: var(--text-2, #a1a1a6); }
+#demo .wd-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--action, #f19a2e);
+  box-shadow: 0 0 10px var(--action, #f19a2e);
+  animation: wd-pulse 1.8s ease-in-out infinite;
+}
+#demo.wd-playing .wd-dot { background: var(--pad-a, #5cbf5c); box-shadow: 0 0 10px var(--pad-a, #5cbf5c); }
+@keyframes wd-pulse { 50% { opacity: .35; } }
+
+#demo .wd-cta {
+  position: absolute;
+  left: 50%;
+  bottom: 62px;
+  top: auto;
+  transform: translateX(-50%);
+  gap: 6px;
+  color: var(--text-2, #a1a1a6);
+  font-weight: 500;
+  transition: opacity .35s ease, transform .35s ease;
+}
+#demo .wd-cta kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  margin: 0 1px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font: 600 10px/1 var(--font, -apple-system, BlinkMacSystemFont, sans-serif);
+  color: var(--text, #f5f5f7);
+  background: rgba(255, 255, 255, .1);
+  border: 1px solid rgba(255, 255, 255, .14);
+  box-shadow: none;
+  vertical-align: middle;
+  transition: none;
+}
+#demo .wd-cta .wd-touch { display: none; }
+#demo.wd-coarse .wd-cta .wd-touch { display: inline; }
+#demo.wd-coarse .wd-cta .wd-desk { display: none; }
+#demo.wd-playing .wd-cta { opacity: 0; transform: translate(-50%, 8px); }
+
+/* Skill bar: 1 2 3 with a radial cooldown sweep (demo.js sets --cd from 1 to 0) */
+#demo .wd-skills { position: absolute; left: 50%; bottom: 14px; display: flex; gap: 6px; transform: translateX(-50%); pointer-events: none; }
+#demo .wd-sk {
+  --cd: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgba(12, 11, 16, .66);
+  border: 1px solid rgba(255, 255, 255, .14);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: border-color .12s, box-shadow .12s;
+}
+#demo .wd-sk canvas { width: 24px; height: 24px; image-rendering: pixelated; }
+#demo .wd-sk::after { content: ""; position: absolute; inset: 0; background: conic-gradient(transparent calc((1 - var(--cd)) * 1turn), rgba(4, 3, 8, .74) 0); }
+#demo .wd-sk b { position: absolute; left: 4px; top: 3px; z-index: 1; font: 700 9px/1 var(--font, sans-serif); color: var(--text-2, #a1a1a6); }
+#demo .wd-sk.on { border-color: var(--c); box-shadow: 0 0 16px -2px var(--c), inset 0 0 0 1px var(--c); }
+#demo.wd-coarse .wd-sk { pointer-events: auto; }
+#demo .wd-bowsk { display: none; }                  /* touch only: hold to draw, aims itself */
+#demo.wd-coarse .wd-bowsk { display: grid; }
+/* Drawing the bow: WASD can't move the hero (the mod hands the game the cursor), so they dim */
+#demo .wd-move { transition: opacity .15s; }
+#demo.wd-aiming .wd-move { opacity: .3; }
+#demo.wd-cursor .wd-canvas { cursor: none; }
+
+/* Option pills at the top: key layout (Recommended / Official layout) and how many blobs */
+#demo .wd-opts {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100% - 16px);
+  transform: translateX(-50%);
+}
+#demo .wd-opts .wd-pill { position: static; }
+#demo.wd-optrow .wd-opts { top: 50px; }
+#demo .wd-seg { gap: 2px; padding: 0 3px; pointer-events: auto; }
+#demo .wd-seg button {
+  height: 22px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  cursor: pointer;
+  font: 600 12px/1 var(--font, sans-serif);
+  letter-spacing: 0;
+  color: var(--text-3, #6e6e73);
+  transition: background .15s, color .15s;
+}
+#demo .wd-seg button:hover { color: var(--text, #f5f5f7); }
+#demo .wd-seg button[aria-pressed="true"] { background: rgba(255, 255, 255, .16); color: var(--text, #f5f5f7); }
+#demo .wd-seg button:focus-visible { outline: 2px solid var(--link, #2997ff); outline-offset: 1px; }
+
+/* HUD: what you press -> what the game sees */
+#demo .wd-hud {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 26px;
+  padding: 20px 24px 22px;
+  border-top: 1px solid var(--hairline, rgba(255, 255, 255, .1));
+  background: linear-gradient(180deg, rgba(255, 255, 255, .03), rgba(255, 255, 255, 0) 70%);
+}
+/* both groups share one height: titles line up on top, captions along the bottom */
+#demo .wd-group { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 0; }
+#demo .wd-group .wd-row { flex: 1; }
+#demo .wd-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--text-3, #6e6e73);
+}
+#demo .wd-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 16px; }
+#demo .wd-item { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+#demo .wd-cap { font-size: 11px; line-height: 1; color: var(--text-3, #6e6e73); white-space: nowrap; transition: color .12s; }
+#demo .wd-item.on .wd-cap { color: var(--text, #f5f5f7); }
+
+#demo .wd-k {
+  --c: var(--move, #5bb5e0);
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-2, #a1a1a6);
+  background: linear-gradient(180deg, #2b2b2f, #1f1f22);
+  border: 1px solid rgba(255, 255, 255, .1);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .45), 0 1px 0 rgba(255, 255, 255, .04);
+  transition: background .08s, color .08s, box-shadow .08s, transform .08s;
+}
+#demo .wd-k.wd-act { --c: var(--action, #f19a2e); }
+#demo .wd-k.on,
+#demo .wd-pb.on {
+  color: #0b0b0d;
+  background: var(--c);
+  border-color: transparent;
+  box-shadow: 0 0 0 1px var(--c), 0 0 18px -3px var(--c);
+  transform: translateY(1px);
+}
+#demo .wd-wasd { display: grid; grid-template-columns: repeat(3, 30px); gap: 4px; }
+#demo .wd-wasd .wd-w { grid-column: 2; }
+#demo .wd-wasd .wd-k:not(.wd-w) { grid-row: 2; }
+#demo .wd-shift { width: 50px; }
+#demo .wd-space { width: 84px; }
+#demo .wd-three { display: flex; align-items: center; gap: 4px; }
+
+#demo .wd-mouse {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 24px 1fr;
+  width: 38px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: 19px 19px 20px 20px;
+  background: linear-gradient(180deg, #2b2b2f, #1b1b1e);
+  border: 1px solid rgba(255, 255, 255, .13);
+}
+#demo .wd-mouse i { --c: var(--action, #f19a2e); border-bottom: 1px solid rgba(255, 255, 255, .12); transition: background .08s; }
+#demo .wd-mouse i:first-child { border-right: 1px solid rgba(255, 255, 255, .12); }
+#demo .wd-mouse i.on { background: var(--c); }
+#demo .wd-mouse .wd-side { position: absolute; left: 2px; width: 5px; height: 9px; border: 0; border-radius: 2px; background: #4a4a52; }
+#demo .wd-mouse .wd-s5 { top: 27px; }               /* side buttons: forward (5) above back (4) */
+#demo .wd-mouse .wd-s4 { top: 38px; }
+#demo .wd-mitem .wd-cap { line-height: 1.3; text-align: center; }
+#demo .wd-mouse::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 7px;
+  width: 4px;
+  height: 9px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: #3a3a40;
+}
+
+#demo .wd-arrow {
+  position: relative;
+  flex: none;
+  align-self: center;
+  width: 46px;
+  height: 2px;
+  margin-top: 22px;
+  border-radius: 2px;
+  background: var(--grad, linear-gradient(90deg, #ffb340, #ff6a3d 45%, #ff3d77 75%, #a259ff));
+  opacity: .45;
+  transition: opacity .15s, box-shadow .15s;
+}
+#demo .wd-arrow::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-top: 2px solid #a259ff;
+  border-right: 2px solid #a259ff;
+  border-radius: 1px;
+  transform: translate(-1px, -50%) rotate(45deg);
+}
+#demo .wd-arrow.on { opacity: 1; box-shadow: 0 0 14px rgba(255, 106, 61, .55); }
+
+#demo .wd-stick {
+  --c: var(--move, #5bb5e0);
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #141416 0 52%, #222226 100%);
+  border: 1px solid rgba(255, 255, 255, .13);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, .6);
+  transition: border-color .12s;
+}
+#demo .wd-stick.wd-rs { --c: var(--action, #f19a2e); }
+#demo .wd-stick.on { border-color: var(--c); }
+#demo .wd-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #3d3d43, #27272b);
+  border: 1px solid rgba(255, 255, 255, .16);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .55);
+  transition: background .1s, box-shadow .1s;
+}
+#demo .wd-rs .wd-knob { transition: background .1s, box-shadow .1s, transform .09s ease-out; }
+#demo .wd-stick.on .wd-knob { background: var(--c); border-color: transparent; box-shadow: 0 0 16px -2px var(--c); }
+/* right stick following a roll drag: a lighter tint until the release flick */
+#demo .wd-stick.drag { border-color: rgba(241, 154, 46, .5); }
+#demo .wd-stick.drag .wd-knob { background: #f8cf96; box-shadow: 0 0 10px -3px var(--c); }
+
+#demo .wd-pb {
+  --c: var(--pad-a, #5cbf5c);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--c);
+  background: linear-gradient(180deg, #232326, #19191b);
+  border: 1px solid rgba(255, 255, 255, .12);
+  transition: background .08s, color .08s, box-shadow .08s, transform .08s;
+}
+#demo .wd-pb.wd-x { --c: var(--pad-x, #4f8fe0); }
+#demo .wd-pb.wd-y { --c: var(--pad-y, #e8b83a); }
+#demo .wd-pb.wd-b { --c: var(--pad-b, #e0584f); }
+#demo .wd-pb.wd-lb { --c: var(--action, #f19a2e); width: 44px; height: 26px; border-radius: 10px 10px 7px 7px; font-size: 11px; color: var(--text-2, #a1a1a6); }
+#demo .wd-pb.wd-lb.on { color: #0b0b0d; }
+
+/* Sizes follow the demo's own width. demo.js measures the HUD with wd-fit (rows on one line) and picks
+   full size, wd-narrow (compact keys), wd-stack ("You press" above "Game sees") or wd-two (two lines each);
+   wd-small (< 500px) shrinks the overlays, wd-tiny (< 330px) tightens the captions. */
+#demo.wd-fit .wd-hud { justify-content: flex-start; overflow: hidden; }
+#demo.wd-fit .wd-row { flex-wrap: nowrap; }
+#demo.wd-fit .wd-group { min-width: max-content; }
+#demo.wd-narrow .wd-hud { gap: 18px; padding: 16px 14px 18px; }
+#demo.wd-narrow .wd-row { gap: 12px; }
+#demo.wd-narrow .wd-k { width: 27px; height: 27px; border-radius: 7px; }
+#demo.wd-narrow .wd-wasd { grid-template-columns: repeat(3, 27px); gap: 3px; }
+#demo.wd-narrow .wd-shift { width: 42px; }
+#demo.wd-narrow .wd-space { width: 66px; }
+#demo.wd-narrow .wd-mouse { width: 32px; height: 48px; grid-template-rows: 20px 1fr; }
+#demo.wd-narrow .wd-mouse .wd-s5 { top: 23px; height: 7px; }
+#demo.wd-narrow .wd-mouse .wd-s4 { top: 32px; height: 7px; }
+#demo.wd-narrow .wd-stick { width: 42px; height: 42px; }
+#demo.wd-narrow .wd-knob { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
+#demo.wd-narrow .wd-pb { width: 28px; height: 28px; font-size: 13px; }
+#demo.wd-narrow .wd-pb.wd-lb { width: 38px; height: 24px; }
+#demo.wd-narrow .wd-arrow { width: 30px; }
+#demo.wd-narrow .wd-pill { top: 10px; height: 24px; padding: 0 9px; gap: 6px; font-size: 11px; }
+#demo.wd-narrow .wd-badge { left: 10px; }
+#demo.wd-narrow .wd-score { right: 10px; }
+#demo.wd-narrow .wd-cta { top: auto; bottom: 54px; }
+#demo.wd-narrow .wd-skills { bottom: 10px; }
+#demo.wd-narrow .wd-sk { width: 34px; height: 34px; border-radius: 9px; }
+#demo.wd-narrow .wd-seg button { height: 20px; padding: 0 9px; font-size: 11px; }
+#demo.wd-narrow.wd-optrow .wd-opts { top: 42px; }
+#demo.wd-stack .wd-hud { flex-direction: column; align-items: center; gap: 14px; padding: 16px 10px 18px; }
+#demo.wd-stack .wd-group .wd-row { flex: none; }
+#demo.wd-stack .wd-arrow { width: 26px; margin: 8px 0; transform: rotate(90deg); }
+#demo .wd-br { display: none; }
+#demo.wd-two .wd-br { display: block; flex-basis: 100%; height: 0; }   /* two mirrored lines per group */
+#demo.wd-two .wd-row { row-gap: 7px; }
+#demo.wd-small .wd-frame { border-radius: 20px; }
+#demo.wd-small.wd-stack .wd-row { column-gap: 10px; }
+#demo.wd-small .wd-pill { top: 8px; height: 22px; padding: 0 8px; gap: 5px; font-size: 10px; border-radius: 11px; }
+#demo.wd-small .wd-badge { left: 8px; }
+#demo.wd-small .wd-score { right: 8px; }
+#demo.wd-small .wd-dot { width: 6px; height: 6px; }
+#demo.wd-small .wd-cta { top: auto; bottom: 44px; }
+#demo.wd-small .wd-cta kbd { min-width: 15px; height: 15px; font-size: 9px; }
+#demo.wd-small .wd-skills { bottom: 7px; gap: 5px; }
+#demo.wd-small .wd-sk { width: 30px; height: 30px; border-radius: 8px; }
+#demo.wd-small .wd-sk canvas { width: 18px; height: 18px; }
+#demo.wd-small .wd-sk b { left: 3px; top: 2px; font-size: 8px; }
+#demo.wd-small.wd-optrow .wd-opts { top: 34px; gap: 6px; }
+#demo.wd-small .wd-seg { padding: 0 2px; }
+#demo.wd-small .wd-seg button { height: 17px; padding: 0 7px; font-size: 10px; }
+#demo.wd-small .wd-long { display: none; }
+#demo.wd-tiny .wd-row { gap: 9px; }
+#demo.wd-tiny.wd-optrow .wd-opts { gap: 4px; }
+#demo.wd-tiny .wd-seg button { padding: 0 5px; font-size: 9px; }
+#demo.wd-tiny .wd-cap { font-size: 10px; }
+@media (prefers-reduced-motion: reduce) {
+  #demo *, #demo *::before, #demo *::after { animation: none !important; transition: none !important; }
+}

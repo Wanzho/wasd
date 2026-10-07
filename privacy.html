@@ -2,62 +2,99 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Privacy – wasdmod</title>
-<meta name="description" content="wasdmod collects no data: what it reads, what it stores on your computer, and the one time it goes online.">
+<meta name="description" content="wasdmod collects no data: what it reads, what it stores on your computer, and the few times it goes online.">
 <link rel="canonical" href="https://wanzho.github.io/wasd/privacy.html">
 <link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="style.css">
 <style>
-:root { --bg: #f6f7f9; --surface: #fff; --text: #16191f; --muted: #5b6270; --line: #e2e5ea; --link: #0f7fa3; --code-bg: #eef1f4; }
-@media (prefers-color-scheme: dark) { :root { --bg: #14171d; --surface: #1d2129; --text: #e9ecf1; --muted: #9aa3b2; --line: #2c323d; --link: #3cc6ea; --code-bg: #262b35; } }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-a { color: var(--link); }
-.wrap { max-width: 760px; margin: 0 auto; padding: 0 20px; }
-header { border-bottom: 1px solid var(--line); }
-header .wrap { display: flex; align-items: center; gap: 10px; height: 60px; }
-header a { display: flex; align-items: center; gap: 10px; font-weight: 650; color: var(--text); text-decoration: none; }
-header img { width: 28px; height: 28px; image-rendering: pixelated; }
-h1 { font-size: 32px; margin: 40px 0 8px; }
-h2 { font-size: 20px; margin: 28px 0 6px; }
-p, li { color: var(--text); }
-.muted { color: var(--muted); }
-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
-footer { border-top: 1px solid var(--line); margin-top: 40px; padding: 24px 0 48px; font-size: 14px; color: var(--muted); }
+  .legal-page { padding: calc(var(--nav-h) + clamp(56px, 10vh, 110px)) 0 clamp(80px, 12vh, 140px); }
+  .legal-page .container { width: min(692px, 100% - 2 * var(--gutter)); }
+  .legal-head { padding-bottom: clamp(32px, 5vh, 48px); border-bottom: 1px solid var(--hairline); }
+  .legal-head h1 { font-size: clamp(48px, 7vw, 80px); line-height: 1.05; font-weight: 600; letter-spacing: -.015em; }
+  .legal-head .updated { margin-top: 14px; font-size: 17px; color: var(--text-2); }
+  .legal-lead { margin-top: clamp(32px, 5vh, 48px); font-size: clamp(21px, 2.2vw, 28px); line-height: 1.25; font-weight: 600; letter-spacing: .007em; color: var(--text-2); }
+  .legal-lead strong { color: var(--text); }
+  .legal-page h2 { margin-top: clamp(44px, 6vh, 64px); font-size: 28px; line-height: 1.14; font-weight: 600; letter-spacing: .007em; }
+  .legal-page ul { margin-top: 18px; display: grid; gap: 14px; }
+  .legal-page li { position: relative; padding-left: 22px; color: var(--text-2); }
+  .legal-page li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 6px; height: 6px; border-radius: 50%; background: linear-gradient(135deg, #ffb340, #ff6a3d); }
+  .legal-page li strong { color: var(--text); }
+  .legal-page p.body { margin-top: 18px; color: var(--text-2); }
+  .legal-page code { white-space: normal; overflow-wrap: anywhere; }
+  .ln-back { font-size: 12px; color: rgba(255, 255, 255, .8); }
+  .ln-back:hover { color: #fff; text-decoration: none; }
 </style>
 </head>
 <body>
-<header><div class="wrap"><a href="./"><img src="icon-192.png" alt="" width="28" height="28">wasdmod</a></div></header>
-<main class="wrap">
-  <h1>Privacy</h1>
-  <p class="muted">wasdmod, its Mac app and its Windows setup · last updated 6 October 2026</p>
 
-  <p><strong>wasdmod collects no data.</strong> It has no accounts, analytics, ads or tracking, and sends nothing about you or your computer anywhere.</p>
+<a class="skip" href="#main">Skip to content</a>
 
-  <h2>What it reads</h2>
-  <ul>
-    <li><strong>Keyboard and mouse, while the game is in front.</strong> The mod turns the keys of your layout into controller input inside the game. It doesn't store or send what you press, and it ignores text you type into the game's text boxes.</li>
-    <li><strong>The game's own keyboard settings</strong> (<code>EnhancedInputUserSettings.sav</code>), so the key layout editor can show and set the game's keys. That file stays on your computer; the first change keeps a backup next to it.</li>
-  </ul>
+<nav class="localnav is-scrolled" aria-label="wasdmod">
+  <div class="ln-inner">
+    <a class="ln-brand" href="./"><img src="icon-192.png" alt="" width="26" height="26"><span>wasdmod</span></a>
+    <a class="ln-back" href="./">Overview</a>
+    <a class="ln-cta" href="https://github.com/Wanzho/mcd2-wasd/releases/latest">Download</a>
+  </div>
+</nav>
 
-  <h2>What it stores, only on your computer</h2>
-  <ul>
-    <li>Your key layouts and language: in the game's folder, and in <code>~/Library/Application Support/wasdmod</code> (Mac) or <code>%APPDATA%\wasdmod</code> (Windows).</li>
-    <li>A short log, <code>wasdmod.log</code>, in the game's folder: which settings file was loaded and when it switched modes. Nothing you type.</li>
-    <li><strong>Record Logs</strong>, only when you turn it on: a report file on your Desktop with the log, your layout and your system versions, for you to attach to a bug report if you choose.</li>
-  </ul>
+<main id="main" class="legal-page">
+  <div class="container">
+    <header class="legal-head">
+      <h1>Privacy</h1>
+      <p class="updated">wasdmod, its Mac app, its Windows setup and this website · last updated 6 October 2026</p>
+    </header>
 
-  <h2>When it goes online</h2>
-  <ul>
-    <li><strong>Check for Updates</strong> (Mac app), only when you click it: asks GitHub's public API for the newest release. GitHub's <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">privacy statement</a> applies to that request.</li>
-    <li>The Windows key layout editor talks only to the setup on your own computer (<code>127.0.0.1</code>), never to the internet.</li>
-    <li>The editor opened as a plain web page (not inside the apps) loads two fonts from Google Fonts.</li>
-    <li>Downloads come from GitHub Releases, and this website is hosted on GitHub Pages; GitHub's privacy statement applies there.</li>
-  </ul>
+    <p class="legal-lead"><strong>wasdmod collects no data.</strong> It has no accounts, analytics, ads or tracking, and sends nothing about you or your computer anywhere.</p>
 
-  <h2>Contact</h2>
-  <p>Questions: <a href="https://github.com/Wanzho/mcd2-wasd/issues">open an issue on GitHub</a>.</p>
+    <h2>What it reads</h2>
+    <ul>
+      <li><strong>Keyboard and mouse, while the game is in front.</strong> The mod turns the keys of your layout into controller input inside the game. It doesn’t store or send what you press, and it ignores text you type into the game’s text boxes.</li>
+      <li><strong>The game’s own keyboard settings</strong> (<code>EnhancedInputUserSettings.sav</code>), so the key layout editor can show and set the game’s keys. That file stays on your computer; the first change keeps a backup next to it.</li>
+    </ul>
+
+    <h2>What it stores, only on your computer</h2>
+    <ul>
+      <li>Your key layouts and language: in the game’s folder, and in <code>~/Library/Application Support/wasdmod</code> (Mac) or <code>%APPDATA%\wasdmod</code> (Windows).</li>
+      <li>A short log, <code>wasdmod.log</code>, in the game’s folder: which settings file was loaded and when it switched modes. Nothing you type.</li>
+      <li><strong>Record Logs</strong>, only when you turn it on: a report file on your Desktop with the log, your layout and your system versions, for you to attach to a bug report if you choose.</li>
+    </ul>
+
+    <h2>When it goes online</h2>
+    <ul>
+      <li><strong>Check for Updates</strong> (Mac app), only when you click it: asks GitHub’s public API for the newest release. GitHub’s <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">privacy statement</a> applies to that request.</li>
+      <li>The Windows key layout editor talks only to the setup on your own computer (<code>127.0.0.1</code>), never to the internet.</li>
+      <li>The editor opened as a plain web page (not inside the apps) loads two fonts from Google Fonts.</li>
+      <li>Downloads come from GitHub Releases, and this website is hosted on GitHub Pages; GitHub’s privacy statement applies there.</li>
+    </ul>
+
+    <h2>This website</h2>
+    <ul>
+      <li><strong>The newest version number.</strong> The page asks GitHub’s public API once per visit which wasdmod release is the newest, to show its version number. Your browser keeps that number until you close the tab.</li>
+      <li><strong>Your choices in the key map.</strong> The Controls section remembers the layout and system you last picked, and any layout you make there, in your browser’s local storage. It never leaves your device; <strong>Export layout</strong> saves the file straight to your computer.</li>
+      <li>Nothing else: no cookies, analytics, trackers, or fonts and scripts from other sites. The little game on the page runs entirely in your browser.</li>
+    </ul>
+
+    <h2>Contact</h2>
+    <p class="body">Questions: <a href="https://github.com/Wanzho/mcd2-wasd/issues">open an issue on GitHub</a>.</p>
+  </div>
 </main>
-<footer><div class="wrap"><a href="./">wasdmod</a> · Unofficial fan project, not affiliated with Mojang or Microsoft.</div></footer>
+
+<footer class="footer">
+  <div class="container">
+    <nav class="footer-links" aria-label="Links">
+      <a href="./">wasdmod</a>
+      <a href="https://github.com/Wanzho/mcd2-wasd">GitHub</a>
+      <a href="https://github.com/Wanzho/mcd2-wasd/releases/latest">Download</a>
+      <a href="https://github.com/Wanzho/mcd2-wasd/issues">Issues</a>
+    </nav>
+    <p class="legal">Unofficial fan project. Not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Synergies&nbsp;AB.</p>
+  </div>
+</footer>
+
 </body>
 </html>
