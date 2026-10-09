@@ -1,6 +1,6 @@
 # wasdmod website
 
-The page at https://wanzho.github.io/wasd/ for [wasdmod](https://github.com/Wanzho/mcd2-wasd), WASD controls for Minecraft Dungeons II.
+The page at https://wasdmod.com/ for [wasdmod](https://github.com/Wanzho/mcd2-wasd), WASD controls for Minecraft Dungeons II.
 
 Plain HTML, CSS and JavaScript, served by GitHub Pages from `main`, with no build step and no outside requests except one to GitHub's API for the newest version number:
 
