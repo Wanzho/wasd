@@ -34,7 +34,7 @@
   var W = 1280, H = 960;
 
   /* ---------- state ---------- */
-  var sr = null, app = null, cam = null, body = null, spot = null, menu = null, keycap = null, ptr = null, host = null;
+  var sr = null, app = null, cam = null, body = null, spot = null, menu = null, keycap = null, game = null, ptr = null, host = null;
   var pristine = null;               // fresh copies of the parts the steps change
   var k = 0.5;                       // the copy's scale on screen
   var camNow = { z: 1, tx: 0, ty: 0 }, frameNow = null;
@@ -114,7 +114,7 @@
     '@keyframes ed-shake { 0%, 100% { translate: 0; } 15% { translate: -4px 0; } 35% { translate: 4px 0; } 55% { translate: -3px 0; } 75% { translate: 2px 0; } }',
     '.ed-press { transform: scale(.95) !important; filter: brightness(1.25); transition: transform .1s, filter .1s !important; }',
     '.ed-html .add.ed-wait { min-width: 104px; }',
-    /* the checklist ticking off */
+    /* the checklist ticking off by itself (step 4) */
     '.ed-html ul.recs li { overflow: hidden; }',
     '.ed-html ul.recs li.ed-done { border-color: rgba(48, 209, 88, .45); background: rgba(48, 209, 88, .1); transition: background-color .25s, border-color .25s; }',
     '.ed-html ul.recs li.ed-done button { visibility: hidden; }',
@@ -123,6 +123,19 @@
     '.ed-html ul.recs li .ed-tick::after { content: ""; position: absolute; left: 6px; top: 5px; width: 8px; height: 4px; border: solid #0b0b0d; border-width: 0 0 2px 2px; transform: rotate(-45deg); }',
     '.ed-html ul.recs li { position: relative; }',
     '.ed-html .allset.ed-in { animation-duration: .6s; }',
+    /* the game's own keyboard settings, where a key is changed in step 4: a panel over the editor */
+    '.ed-game { position: absolute; z-index: 50; left: 0; top: 0; width: 290px; padding: 12px 14px 14px; border-radius: 10px; pointer-events: none;',
+    '  background: rgba(22, 22, 26, .97); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), 0 18px 44px rgba(0, 0, 0, .6), 0 2px 8px rgba(0, 0, 0, .35);',
+    '  font: 400 14px/1.3 var(--body); color: var(--fg); opacity: 0; transform: translateY(8px) scale(.97); transition: opacity .25s, transform .3s var(--ease); }',
+    '.ed-game.on { opacity: 1; transform: none; }',
+    '.ed-game p { margin: 0; }',
+    '.ed-game .gh { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }',
+    '.ed-game .gp { margin: 3px 0 12px; font-size: 12px; color: var(--soft); }',
+    '.ed-game .gr { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border-radius: 6px; background: rgba(255, 255, 255, .05); }',
+    '.ed-game .gk { min-width: 58px; padding: 6px 10px; border-radius: 6px; text-align: center; font-weight: 600; background: rgba(255, 255, 255, .09); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16); }',
+    /* the line at the top (the "in game" keys follow the game's settings), lit at the end of step 4 */
+    '.ed-html .sync-note { transition: color .5s; }',
+    '.ed-html .sync-note.ed-lit { color: var(--fg); }',
     /* the keyboard map: a key you press, the colour being shown */
     '.ed-html .k.ed-down { z-index: 3; filter: brightness(1.6); transform: translateY(1px) scale(.94); }',
     '.ed-html .k.off.ed-down { opacity: 1; color: var(--fg); }',
@@ -134,7 +147,7 @@
   function load() {
     if (loading) return;
     loading = true;
-    fetch('editor-snap.html', { credentials: 'same-origin' })
+    fetch('editor-snap.html?v=20261009c', { credentials: 'same-origin' })
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
       .then(safe('mount', mount))
       .then(function () { if (!mounted) fallback(); })
@@ -173,11 +186,15 @@
       '<p class="g">Yours</p><p class="i" data-v="mine">My layout</p><hr><p class="i">Import a file…</p>';
     body.appendChild(menu);
     keycap = doc.createElement('div'); keycap.className = 'ed-key'; body.appendChild(keycap);
+    game = doc.createElement('div'); game.className = 'ed-game';
+    game.innerHTML = '<p class="gh">In the game</p><p class="gp">Settings › Controls › Keyboard</p><p class="gr"><span>Forward Dodge</span><span class="gk">Shift</span></p>';
+    body.appendChild(game);
     // nothing in the copy takes focus
     qa('button, select, input, [tabindex]').forEach(function (el) { el.setAttribute('tabindex', '-1'); });
     pristine = {
       art1: q('.row[data-action="art1"]').cloneNode(true),
       potion: q('.row[data-action="potion"]').cloneNode(true),
+      fdodge: q('.row[data-action="fdodge"]').cloneNode(true),
       map: q('#mapCard').cloneNode(true),
       recs: q('#recsCard').innerHTML
     };
@@ -454,16 +471,18 @@
     menu.classList.remove('on');
     qa('.ed-menu .i').forEach(function (p) { p.classList.remove('hot', 'pick', 'cur'); });
     keycap.classList.remove('on');
+    game.classList.remove('on');
     var t = q('#toast'); if (t) t.classList.remove('show');
     qa('.ed-press').forEach(function (el) { el.classList.remove('ed-press'); });
-    [['art1', '.row[data-action="art1"]'], ['potion', '.row[data-action="potion"]'], ['map', '#mapCard']].forEach(function (p) {
+    [['art1', '.row[data-action="art1"]'], ['potion', '.row[data-action="potion"]'], ['fdodge', '.row[data-action="fdodge"]'], ['map', '#mapCard']].forEach(function (p) {
       var live = q(p[1]);
       if (live) live.replaceWith(pristine[p[0]].cloneNode(true));
     });
+    var note = q('#syncNote'); if (note) note.classList.remove('ed-lit');
     app.classList.remove('ed-keys');
   }
   // boxes whose height a step changed go back smoothly (measured first, animated after the camera is set)
-  function restoreBoxes(n) {
+  function restoreBoxes() {
     var later = [];
     var cf = q('#conflicts');
     if (cf && cf.style.height) { cf.textContent = ''; cf.style.height = ''; cf.style.overflow = ''; }   // a collapse that was cut short
@@ -477,7 +496,7 @@
       });
     }
     var rc = q('#recsCard');
-    if (rc && rc.innerHTML !== pristine.recs && n !== 4) {
+    if (rc && rc.innerHTML !== pristine.recs) {
       var r0 = rc.offsetHeight;
       rc.innerHTML = pristine.recs;
       later.push(function () { grow(rc, r0, 500); });
@@ -501,7 +520,32 @@
     return list;
   };
   var OVERVIEW = { spot: null };
+  // step 4 on wide screens: the line at the top, Forward dodge and the checklist, all in view
+  var syncView = function () { return [q('#syncNote'), row('fdodge'), q('#recsCard')]; };
+  // the checklist with one key to change, as the editor shows it (its copy with three, cut down)
+  function oneRec(action, key, was) {
+    var tpl = q('#ed-recs');
+    if (!tpl) return null;
+    var box = doc.createElement('div');
+    box.innerHTML = tpl.innerHTML;
+    var lis = box.querySelectorAll('ul.recs li');
+    if (!lis.length) return null;
+    for (var i = 1; i < lis.length; i++) lis[i].remove();
+    var line = lis[0].querySelector('span'), b = doc.createElement('b'), b2 = doc.createElement('b'), w = doc.createElement('span');
+    b.textContent = action; b2.textContent = key; w.className = 'was'; w.textContent = 'now: ' + was;
+    line.textContent = '';
+    line.appendChild(b); line.appendChild(doc.createTextNode(': first key → ')); line.appendChild(b2); line.appendChild(w);
+    return box.innerHTML;
+  }
 
+  // the game's settings panel (step 4): under the "in game" chip, its right edge on the chip's
+  var gameBox = function () { return { x: game.offsetLeft, y: game.offsetTop, w: game.offsetWidth, h: game.offsetHeight }; };
+  function placeGame(near) {
+    if (!near) return;
+    var r = rectOf(near), w = game.offsetWidth || 290;
+    game.style.left = Math.max(8, r.x + r.w - w).toFixed(1) + 'px';
+    game.style.top = (r.y + r.h + 14).toFixed(1) + 'px';
+  }
   // the open menu's box (its own layout box: the closed menu is drawn a little shifted)
   var menuBox = function () { return { x: menu.offsetLeft, y: menu.offsetTop, w: menu.offsetWidth, h: menu.offsetHeight }; };
   var PICKER = { spot: function () { return [q('#layoutSel')]; }, frame: function () { return [q('.layoutbar .label'), q('#layoutSel'), menuBox(), q('#exportBtn')]; }, side: 'right',
@@ -610,40 +654,88 @@
         });
       }
     },
-    // 4 · the checklist: Apply to the game's controls, the items tick off, All set
+    // 4 · the "in game" keys follow the game's own settings: Forward dodge goes from Shift to Ctrl
+    // in the editor, the game still has Shift ("in game" turns yellow, the checklist lists it);
+    // then the player changes it in the game's own keyboard settings, and the editor follows by
+    // itself: the chip turns to Ctrl, the checklist clears, the line at the top lights up
     4: {
-      frame: { spot: function () { return [q('#recsCard')]; }, pad: 4, side: 'left',
-        ph: { spot: function () { return [q('#recsCard ul.recs') || q('#recsCard .allset'), q('#recsCard .apply-game .out-actions')]; } } },
-      before: function () {
-        var rc = q('#recsCard'), tpl = q('#ed-recs');
-        if (!rc || !tpl) return;
-        var h0 = rc.offsetHeight;
-        rc.innerHTML = tpl.innerHTML;
-        rc.querySelectorAll('button').forEach(function (b) { b.tabIndex = -1; });
-        return [function () { grow(rc, h0, 500); }];
-      },
+      frame: { spot: function () { return [textOf(q('#syncNote'))]; }, frame: syncView, side: 'below',
+        ph: { spot: function () { return [textOf(q('#syncNote'))]; } } },
+      change: { spot: function () { return keysOf('fdodge'); }, frame: syncView, side: 'below',
+        ph: { spot: function () { return keysOf('fdodge'); } } },
+      follow: { spot: function () { return [row('fdodge').querySelector('.ingame'), q('#recsCard')]; }, pad: 6, frame: syncView, side: 'below',
+        ph: { spot: function () { return [row('fdodge').querySelector('.ingame'), q('#recsCard ul.recs') || q('#recsCard .allset')]; } } },
+      game: { spot: function () { return [gameBox()]; }, pad: 6, frame: function () { return syncView().concat([gameBox()]); }, side: 'below',
+        ph: { spot: function () { return [gameBox()]; }, frame: function () { return [row('fdodge').querySelector('.ingame'), gameBox()]; } } },
       play: function () {
-        var rc = q('#recsCard'), apply = rc.querySelector('.apply-game .primary'), lis = Array.prototype.slice.call(rc.querySelectorAll('ul.recs li'));
-        at(850, function () { ptrShow(apply, 0.5, 0.6, 60, 70); });
-        at(1450, function () { ptrClick(apply); });
-        lis.forEach(function (li, i) {
-          at(1750 + i * 380, function () {
-            li.classList.add('ed-done');
-            var t = doc.createElement('i'); t.className = 'ed-tick'; li.appendChild(t);
-          });
-          at(2150 + i * 380, function () {
-            animate(li, [{ height: li.offsetHeight + 'px', opacity: 1, marginBottom: '0px' }, { height: '0px', opacity: 0, paddingTop: '0px', paddingBottom: '0px', marginBottom: '-6px', borderWidth: '0px' }],
-              { duration: 340, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
-          });
+        var S = STEPS[4], r = row('fdodge'), rc = q('#recsCard'), note = q('#syncNote');
+        var c = r.querySelector('.keys .cap'), x = c && c.querySelector('button'), add = r.querySelector('.keys .add'), g = r.querySelector('.ingame button[data-slot="0"]');
+        var gk = game.querySelector('.gk');
+        at(1300, function () { showFrame(S.change, false, true); });
+        at(2000, function () { ptrShow(x, 0.5, 0.55); });
+        at(2600, function () { ptrClick(x); });
+        at(2750, function () { collapse(c, 280); });
+        at(3100, function () { ptrTo(add, 0.45, 0.6, 420); });
+        at(3600, function () {
+          ptrClick(add);
+          add.classList.add('listening', 'ed-wait');
+          add.textContent = 'Press a key…';
         });
-        at(2150 + lis.length * 380 + 120, function () {
+        at(3900, function () { pressKey('Ctrl', add, 0.5); });
+        at(4550, function () {   // Ctrl is the key now; the game still has Shift, so its chip turns yellow and the checklist lists it
+          var k2 = chip('Ctrl');
+          k2.classList.add('ed-in');
+          add.replaceWith(k2);
+          var nb = addBtn(); nb.classList.add('ed-in');
+          k2.after(nb);
+          if (g) { g.classList.remove('match'); g.classList.add('stray'); }
+          light(mapKey('Shift'), null); light(mapKey('Shift', true), null);
+          light(mapKey('Ctrl'), 'move'); light(mapKey('Ctrl', true), 'move');
+          var html = oneRec('Forward Dodge', 'Ctrl', 'Shift');
+          if (html) {
+            var h0 = rc.offsetHeight;
+            rc.innerHTML = html;
+            rc.querySelectorAll('button').forEach(function (b) { b.tabIndex = -1; });
+            var li = rc.querySelector('ul.recs li'); if (li) li.classList.add('ed-in');
+            grow(rc, h0, 420);
+          }
+          ptrHide();
+          showFrame(S.follow, false, true);
+        });
+        at(6000, function () {   // meanwhile, in the game: its own keyboard settings, Forward Dodge on Shift
+          placeGame(g);
+          gk.textContent = 'Shift';
+          game.classList.add('on');
+          showFrame(S.game, false, true);
+        });
+        at(6900, function () { pressKey('Ctrl', gk, 0.5); });
+        at(7550, function () { gk.textContent = 'Ctrl'; gk.classList.remove('ed-in'); void gk.offsetWidth; gk.classList.add('ed-in'); });
+        at(8500, function () { game.classList.remove('on'); showFrame(S.follow, false, true); });
+        at(9000, function () {   // the game saved its settings: the editor shows its new key, and the checklist ticks off
+          if (g) {
+            g.textContent = 'Ctrl';
+            g.classList.remove('stray', 'ed-in'); g.classList.add('match');
+            void g.offsetWidth; g.classList.add('ed-in');
+          }
+          var li = rc.querySelector('ul.recs li');
+          if (li) { li.classList.remove('ed-in'); li.classList.add('ed-done'); var t = doc.createElement('i'); t.className = 'ed-tick'; li.appendChild(t); }
+        });
+        at(9450, function () {
+          var li = rc.querySelector('ul.recs li');
+          if (li) animate(li, [{ height: li.offsetHeight + 'px', opacity: 1, marginBottom: '0px' }, { height: '0px', opacity: 0, paddingTop: '0px', paddingBottom: '0px', marginBottom: '-6px', borderWidth: '0px' }],
+            { duration: 340, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
+        });
+        at(9900, function () {   // All set, as before the change
           var h0 = rc.offsetHeight;
           rc.innerHTML = pristine.recs;
           rc.querySelectorAll('button').forEach(function (b) { b.tabIndex = -1; });
           var ok = rc.querySelector('.allset'); if (ok) ok.classList.add('ed-in');
-          showFrame(STEPS[4].frame, false, true, true);
+          showFrame(S.follow, false, true);
           grow(rc, h0, 420);
-          ptrHide();
+        });
+        at(10850, function () {   // the line at the top: that's what happened
+          if (note) note.classList.add('ed-lit');
+          showFrame(S.frame, false, true);
         });
       }
     },

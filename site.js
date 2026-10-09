@@ -64,45 +64,75 @@
   });
 
   /* ---------- downloads that match the visitor's system (Windows first) ---------- */
+  // The page ships with direct links to the release it was built with. The newest
+  // release (GitHub's public API, once per visit) replaces them, matched by file
+  // pattern, so a newer release works before the page is updated.
   var os = 'win';
+  var DL = {
+    win: { re: /^wasdmod-[\d.]+\.exe$|^wasdmod-Windows\.exe$/, ext: 'exe', label: 'Download for Windows' },
+    mac: { re: /^wasdmod-[\d.]+\.dmg$|^wasdmod-Mac\.dmg$/, ext: 'dmg', label: 'Download for Mac' },
+    linux: { re: /^wasdmod-[\d.]+\.zip$|^wasdmod\.zip$/, ext: 'zip', label: 'Download for Linux' }
+  };
+  function applyDownloads() {
+    $$('[data-dl]').forEach(function (a) {
+      var d = DL[a.getAttribute('data-dl') || os];
+      if (d.href) a.href = d.href;
+      var label = $('[data-dl-label]', a);
+      if (label && !a.getAttribute('data-dl')) label.textContent = d.label;
+    });
+    $$('[data-dl-name]').forEach(function (el) {
+      var d = DL[el.getAttribute('data-dl-name')];
+      if (d.name) el.textContent = d.name.replace(/-/g, '\u2011');
+    });
+  }
   run('downloads', function () {
-    var BASE = 'https://github.com/Wanzho/mcd2-wasd/releases/latest/download/';
-    var DL = {
-      win: { href: BASE + 'wasdmod-Windows.exe', label: 'Download for Windows' },
-      mac: { href: BASE + 'wasdmod-Mac.dmg', label: 'Download for Mac' },
-      linux: { href: BASE + 'wasdmod.zip', label: 'Download for Linux' }
-    };
     var ua = navigator.userAgent || '';
     var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
     if (/Android|iPhone|iPad|iPod|CrOS/i.test(ua)) os = 'win';
     else if (/Mac/i.test(plat) || /Macintosh/.test(ua)) os = navigator.maxTouchPoints > 1 ? 'win' : 'mac';
     else if (/Linux|X11|SteamOS/i.test(plat + ' ' + ua)) os = 'linux';
     api.os = os;
-    $$('[data-dl]').forEach(function (a) {
-      a.href = DL[os].href;
-      var label = $('[data-dl-label]', a);
-      if (label) label.textContent = DL[os].label;
+    // the links the page was built with
+    $$('a[data-dl]').forEach(function (a) {
+      var which = a.getAttribute('data-dl');
+      if (which && !DL[which].href) DL[which].href = a.href;
     });
+    applyDownloads();
   });
 
-  /* ---------- newest version (optional, cached for the session) ---------- */
+  /* ---------- newest release (optional, cached for the session) ---------- */
   run('version', function () {
-    function setVersion(v) { $$('[data-version]').forEach(function (el) { el.textContent = 'Version ' + v; }); }
-    var key = 'wasdmod-version', cached = null;
-    try { cached = sessionStorage.getItem(key); } catch (e) { /* private mode */ }
-    if (cached) { setVersion(cached); return; }
+    function setRelease(rel) {
+      $$('[data-version]').forEach(function (el) { el.textContent = 'Version ' + rel.v; });
+      Object.keys(DL).forEach(function (k) {
+        var f = rel.files && rel.files[k];
+        if (f) { DL[k].href = f.url; DL[k].name = f.name; }
+      });
+      applyDownloads();
+    }
+    var key = 'wasdmod-release', cached = null;
+    try { cached = JSON.parse(sessionStorage.getItem(key) || 'null'); } catch (e) { /* private mode */ }
+    if (cached && cached.v) { setRelease(cached); return; }
     if (!window.fetch) return;
-    setTimeout(function () {
-      fetch('https://api.github.com/repos/Wanzho/mcd2-wasd/releases/latest', { credentials: 'omit', referrerPolicy: 'no-referrer' })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (j) {
-          var m = /^v?(\d{1,3}(?:\.\d{1,4}){1,3})$/.exec((j && j.tag_name) || '');
-          if (!m) return;
-          setVersion(m[1]);
-          try { sessionStorage.setItem(key, m[1]); } catch (e) { /* ignore */ }
-        })
-        .catch(function () { /* keep the built-in version */ });
-    }, 1200);
+    fetch('https://api.github.com/repos/Wanzho/mcd2-wasd/releases/latest', { credentials: 'omit', referrerPolicy: 'no-referrer' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var m = /^v?(\d{1,3}(?:\.\d{1,4}){1,3})$/.exec((j && j.tag_name) || '');
+        if (!m) return;
+        var rel = { v: m[1], files: {} };
+        var pre = 'https://github.com/Wanzho/mcd2-wasd/releases/download/';
+        (j.assets || []).forEach(function (as) {
+          Object.keys(DL).forEach(function (k) {
+            var u = as && as.browser_download_url;
+            if (!rel.files[k] && DL[k].re.test(as.name || '') && typeof u === 'string' && u.indexOf(pre) === 0) {
+              rel.files[k] = { name: as.name, url: u };
+            }
+          });
+        });
+        setRelease(rel);
+        try { sessionStorage.setItem(key, JSON.stringify(rel)); } catch (e) { /* ignore */ }
+      })
+      .catch(function () { /* keep the built-in links */ });
   });
 
   /* ---------- local nav ---------- */
@@ -454,7 +484,8 @@
     function demoTick(t) {
       var dt = Math.min(50, Math.max(0, t - demoLast));
       demoLast = t;
-      if (visible) demoT += dt;          // waits while the stage is off screen
+      if (!visible) { demoRaf = 0; return; }   // off screen it waits, with no frames; the observer below picks it up again
+      demoT += dt;
       var k = '';
       for (var i = 0; i < STEPS.length; i++) if (demoT >= STEPS[i][0]) k = STEPS[i][1];
       if (k !== autoK) { autoK = k; apply(); }
@@ -527,6 +558,7 @@
           // how much of the screen it fills (the pinned block is one screen tall)
           var fill = e.isIntersecting ? Math.max(e.intersectionRatio, e.intersectionRect.height / (window.innerHeight || 1)) : 0;
           visible = fill >= .3;
+          if (visible && state === 'demo' && !demoRaf) { demoLast = performance.now(); demoRaf = requestAnimationFrame(demoTick); }
           if (state === 'idle' && fill >= .35) reveal();
           if (state === 'shown') {
             if (fill >= .85) maybeStart();
@@ -603,6 +635,12 @@
     measure();
     // each card runs its little loop only while it's on screen
     onView(cards, function (el, on) { el.classList.toggle('is-inview', on); }, { threshold: 0.2 });
+  });
+
+  /* ---------- the other looping animations (the keyboard's float and glow, the pulsing dots, the
+     final icon) rest while their section is off screen: .is-away, see style.css ---------- */
+  run('loops', function () {
+    onView([$('#show'), $('#try'), $('.final')], function (el, on) { el.classList.toggle('is-away', !on); });
   });
 
   /* ---------- editor: a live copy of the key layout editor, toured as you scroll ----------

@@ -400,7 +400,7 @@ kbd.wide { min-width: 4.2em; }
   text-wrap: balance;
 }
 .hero-sub-lead { color: var(--text); }
-.hero .cta-row { margin-top: clamp(20px, 3.4vh, 34px); }
+.hero .cta-row { margin-top: clamp(20px, 3.4vh, 34px); flex-direction: column; gap: 18px; }
 .hero-fine { margin-top: 16px; font-size: 14px; line-height: 1.43; letter-spacing: -.016em; color: var(--text-2); }
 
 /* the show: keys and stick appear together, play once, then it's your turn */
@@ -920,6 +920,8 @@ kbd.wide { min-width: 4.2em; }
 .no-js .hl-controls { display: none; }
 .js .hl-card .hl-art * { animation-play-state: paused !important; }
 .js .hl-card.is-inview .hl-art * { animation-play-state: running !important; }
+/* the page's other endless loops rest while their section is off screen (site.js sets .is-away) */
+.is-away :is(.rig-float, .board-glow, .key b.lit, .wd-dot, .tr-dot, .tr-done .btn, .final-icon img), .is-away .board-trail::before { animation-play-state: paused !important; }
 
 /* small keycap used in the illustrations */
 .kcap {

@@ -77,7 +77,7 @@
   for (const r of [...K.ACTIONS, ...K.MOD_ROWS]) if (r.label && r.sub) NOTES[r.label] = cap1(r.sub);
   // The text list: a row per action, a few grouped as in the README.
   const GROUPS = { up: ['Move up / left / down / right', 'left', 'down', 'right'], art1: ['Artifact 1 / 2 / 3', 'art2', 'art3'],
-    tp1: ['Teleport to player 1–4', 'tp2', 'tp3', 'tp4'] };
+    tp1: ['Teleport to player 1 / 2 / 3 / 4', 'tp2', 'tp3', 'tp4'] };
   const inGroup = new Set(Object.values(GROUPS).flatMap(g => g.slice(1)));
   const LIST = Object.values(OWNERS).filter(o => !inGroup.has(o.id)).map(o => {
     const g = GROUPS[o.id];
@@ -172,7 +172,7 @@
   const reduceMotion = mq('(prefers-reduced-motion: reduce)'), touchFirst = mq('(hover: none)');
   const ABOUT = {
     d: 'The game’s own keys, played as a controller. Only the menu wheel moves, from S to Tab.',
-    r: 'The author’s layout. Dodge with right click or Shift; the bow moves to side button 4.',
+    r: 'The author’s layout. Dodge with right click or Shift. The bow is on side button 4, or on C to shoot the way you face.',
     y: base => `Your layout, made from ${FROM[base]}. Export it below to play with it in the game.`,
   };
   const seg = (key, label, opts) => `
@@ -202,7 +202,7 @@
     </div>
     <div class="km-export">
       <button type="button" class="km-exp">${DL_ICON}<span>Export layout</span></button>
-      <p class="km-exp-note"><span>Windows: the setup’s Load layout file…</span> · <span>Mac: the app’s layout menu → Import…</span> · <span>Linux / Steam Deck: put it in Dungeons/Binaries/Win64.</span></p>
+      <p class="km-exp-note"><span>Windows: the setup’s Load layout file…</span> · <span>Mac: the app’s layout menu → Import a file…</span> · <span>Linux / Steam Deck: put it in Dungeons/Binaries/Win64.</span></p>
     </div>
     <div class="km-list">
       <button type="button" class="km-more" aria-expanded="false">All controls<span class="km-chev" aria-hidden="true"></span></button>
@@ -210,7 +210,7 @@
         <p class="km-list-hint">${touchFirst ? 'With a keyboard attached, tap a key here and press the new one.' : 'Click a key to change it, or + key to add one.'}</p>
         <div class="km-cols"></div></div></div>
     </div>
-    <div class="km-tip" aria-hidden="true"><div><b class="km-tip-k"></b> — <span class="km-tip-a"></span></div><div class="km-tip-d"></div></div>
+    <div class="km-tip" aria-hidden="true"><div><b class="km-tip-k"></b>: <span class="km-tip-a"></span></div><div class="km-tip-d"></div></div>
     <div class="km-ghost" aria-hidden="true"><b></b><span></span><i></i></div>
     <div class="km-sr" aria-live="polite"></div>
   </div>`;
@@ -734,6 +734,15 @@
   km.addEventListener('pointerdown', e => { touch = e.pointerType === 'touch'; });
   km.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') pointerIn = true; });
   km.addEventListener('pointerleave', () => { pointerIn = false; });
+  // Side buttons pressed on the mouse drawing are someone trying them out: no Back or Forward for those.
+  let sideOnMouse = false;
+  for (const type of ['mousedown', 'mouseup', 'pointerup', 'auxclick']) {
+    addEventListener(type, e => {
+      if (e.button < 3) return;
+      if (type === 'mousedown') sideOnMouse = !!closest(e.target, '#keymap .km-mouse');
+      if (sideOnMouse) e.preventDefault();
+    }, true);
+  }
   km.addEventListener('pointerover', e => {
     if (e.pointerType === 'touch' || drag || pd) return;
     const k = closest(e.target, '.km-key'), leg = closest(e.target, '.km-leg'), row = closest(e.target, '.km-row');

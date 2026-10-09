@@ -54,8 +54,11 @@ const ACTIONS = [
   { id: "right", sec: "act", cat: "move", label: _("Move right"), move: "Right", badge: _("L-stick") },
   { id: "dodge", sec: "act", cat: "move", label: _("Directional dodge"), sub: _("tap: dodge the way you're moving · hold, move the mouse, let go: dodge that way"), move: "DodgeMouse", badge: _("R-stick"), game: _("Directional Dodge") },
   { id: "fdodge", sec: "act", cat: "move", label: _("Forward dodge"), sub: _("quick dodge the way you face"), pad: "LB", game: _("Forward Dodge") },
-  { id: "jump", sec: "act", cat: "action", label: _("Jump / interact"), pad: "A", game: _("Jump") },
-  { id: "melee", sec: "act", cat: "action", label: _("Melee"), sub: _("in the air: heavy jump attack"), pad: "X", game: _("Interact, Melee Attack") },
+  { id: "jump", sec: "act", cat: "action", label: _("Jump / interact"), sub: _("on a controller, A is jump and interact; in the game's keyboard settings, interact is on the attack key"), pad: "A", game: _("Jump") },
+  // The game's keyboard settings have interact and melee as one action ("Interact, Melee
+  // Attack"), while on a controller interact is A, with jump. So that action's keys may also
+  // be your Jump / interact keys (an F there to interact is right): alsoOk.
+  { id: "melee", sec: "act", cat: "action", label: _("Melee"), sub: _("in the air: heavy jump attack"), pad: "X", game: _("Interact, Melee Attack"), alsoOk: "jump" },
   { id: "ranged", sec: "act", cat: "action", label: _("Ranged (bow)"), sub: _("on a mouse button: hold it to aim at the cursor"), pad: "RT", game: _("Ranged Attack") },
   { id: "art1", sec: "act", cat: "action", label: _("Artifact 1"), pad: "Y", game: _("Artifact 1") },
   { id: "art2", sec: "act", cat: "action", label: _("Artifact 2"), pad: "B", game: _("Artifact 2") },
@@ -91,6 +94,9 @@ const padAllowed = (a, st) => a.id === "inventory" || !!st.opt.ControllerMenus;
 const knownGame = arr => (arr || []).filter(k => k && k !== "?");
 const firstGame = (a, st) => a.fixedGame || knownGame(st.game[a.id])[0] || null;
 const gameSlots = (a, st) => a.fixedGame ? [a.fixedGame] : knownGame(st.game[a.id]);
+// The keys an action may have in the game's keyboard settings: the row's own, and for
+// "Interact, Melee Attack" also the Jump / interact keys (see alsoOk).
+const okGameKeys = (a, st) => a.alsoOk ? uniq([...(st.keys[a.id] || []), ...(st.keys[a.alsoOk] || [])]) : st.keys[a.id] || [];
 // The mod's row labels for the on-screen key list, per controller button.
 const PAD_LABEL = { A: "Jump / interact", X: "Melee (in the air: heavy jump attack)", RT: "Ranged (bow)", Y: "Artifact 1", B: "Artifact 2", RB: "Artifact 3",
   LT: "Health potion", LB: "Forward dodge", LS: "Guidance trail", RS: "Emotes", DUp: "Inventory (tap: full, hold: mini)", DDown: "Social menu",
@@ -174,7 +180,7 @@ Language=Auto
 RequireFocus=1
 AlwaysConnected=1
 Log=1`;
-// The Recommended layout: bow on side button 5, inventory (E), quests (V), social
+// The Recommended layout: bow on side button 4 and C, inventory (E), quests (V), social
 // (/) and teleport (X) on the controller so you can keep moving, Tab for the menu wheel,
 // everything else on the game's own keys. It assumes the game's default keyboard
 // keys ("in game"), and the mod converts your keys onto them.
@@ -198,7 +204,7 @@ Y=Q
 LB=Shift
 RB=3
 LT=R
-RT=Mouse4
+RT=Mouse4, C
 Back=None
 Start=None
 LS=Mouse3
@@ -313,7 +319,7 @@ const TUNE = [
   { sec: "Movement", key: "TurnMs", label: _("Turn time"), sub: _("a full 180° turn (90° takes half). 0 ms = sharpest; higher = smoother, but it can feel less responsive"), min: 0, max: 1000, step: 10, unit: "ms" },
   { sec: "Move", key: "DodgeDragPx", label: _("Dodge drag distance"), sub: _("while you hold Directional dodge, moving the mouse this far dodges that way instead of the way you're moving. Lower = a small move is enough; higher = it takes a bigger move"), min: 10, max: 150, step: 5, unit: "px" },
   { sec: "Move", key: "DodgeFlickMs", label: _("Dodge stick time"), sub: _("how long each dodge pushes the controller's right stick. Lower = quicker dodges back to back, but too short and the game can miss one; higher = more reliable"), min: 30, max: 200, step: 10, unit: "ms" },
-  { sec: "Mouse", key: "MouseModeOnMovePx", label: _("Mouse move that brings back the cursor"), sub: _("how far you move the mouse, while not walking, before the cursor comes back. Lower = a small move does it; higher = it takes a bigger move, so bumps don't. 0 = never (and no bump correction)"), min: 0, max: 150, step: 5, unit: "px" },
+  { sec: "Mouse", key: "MouseModeOnMovePx", label: _("Mouse move that brings back the cursor"), sub: _("how far you move the mouse, while not walking, before the cursor comes back. Lower = a small move does it; higher = it takes a bigger move, so bumps don't. 0 = never (bump correction is then off too)"), min: 0, max: 150, step: 5, unit: "px" },
   { sec: "Mouse", key: "BumpNudgePct", label: _("Bump correction"), sub: _("a small mouse bump can switch the game's button prompts to keyboard; once the mouse stops, the mod pushes the right stick lightly to switch them back. Lower = a lighter push (lower it if it ever makes you dodge); 0 = off"), min: 0, max: 60, step: 5, unit: "%" },
   { sec: "Keys", key: "MenuTapMs", label: _("Tap vs hold"), sub: _("menu keys: a press shorter than this is a tap (the menu opens and the cursor stays), a longer one a hold (a quick overlay like the mini inventory, gone when you let go). Higher = longer presses still count as taps"), min: 100, max: 600, step: 25, unit: "ms" },
   { sec: "Options", key: "LegendSeconds", label: _("Key list at start"), sub: _("how long the on-screen key list shows when the game starts. 0 = only when you press {legend}"), min: 0, max: 60, step: 5, unit: "s" },
@@ -335,7 +341,7 @@ const TOGGLES = [
     on: _("holding a mouse button that's on {bow} switches the game to keyboard and mouse, so the bow aims at the cursor; your movement keys wait until you let go"),
     off: _("a mouse button on {bow} presses the controller's RT like any other key, so the bow aims the way your character faces") },
   { sec: "Mouse", key: "KeepCursorInWindow", label: _("Keep the mouse inside the game window while playing"), ...flag,
-    on: _("while you play, the hidden cursor can't leave the game window (and is put back in the middle while you walk), so a click can't land in another app"),
+    on: _("while you play, the hidden cursor can't leave the game window (the mod puts it back in the middle while you walk), so a click can't land in another app"),
     off: _("the hidden cursor can drift out of the game window, so a click can land in another app or on the desktop") },
   { sec: "Options", key: "BlockOtherKeys", label: _("Block keys that aren't used"), ...flag,
     on: _("while you play, keys this layout doesn't use never reach the game, so a stray press can't switch it to keyboard mode"),
@@ -345,7 +351,7 @@ const TOGGLES = [
     off: _("the game sees mouse movement while you play, which can switch it to keyboard mode") },
   { sec: "Options", key: "Legend", label: _("On-screen key list"), ...flag,
     on: _("a list of your keys shows over the game when it starts, for a moment after you save a layout, and when you press {legend}"),
-    off: _("no key list over the game, not even with {legend}") },
+    off: _("the key list never shows over the game, even when you press {legend}") },
 ];
 const TG = key => TOGGLES.find(o => o.key === key);
 
@@ -488,10 +494,12 @@ function recommendations(st) {
   const out = [];
   for (const a of ACTIONS) {
     if (!a.game) continue;
-    const keys = st.keys[a.id], g = st.game[a.id] || [];
-    if (!keys.length) { g.forEach((k, i) => { if (k && k !== "?") out.push({ a, slot: i, want: null, was: k }); }); continue; }
-    if (!keys.includes(g[0])) out.push({ a, slot: 0, want: keys.find(k => !isArrow(k)) || keys[0], was: g[0] || null });
-    if (g[1] && g[1] !== "?" && !keys.includes(g[1])) out.push({ a, slot: 1, want: null, was: g[1] });
+    const keys = st.keys[a.id], g = st.game[a.id] || [], ok = okGameKeys(a, st), known = k => k && k !== "?";
+    if (!keys.length) { g.forEach((k, i) => { if (known(k) && !ok.includes(k)) out.push({ a, slot: i, want: null, was: k }); }); continue; }
+    // The first column is one of your keys, or a key it may also have while yours is in the second.
+    const firstOk = keys.includes(g[0]) || (ok.includes(g[0]) && keys.includes(g[1]));
+    if (!firstOk) out.push({ a, slot: 0, want: keys.find(k => !isArrow(k)) || keys[0], was: g[0] || null });
+    if (known(g[1]) && !ok.includes(g[1])) out.push({ a, slot: 1, want: null, was: g[1] });
   }
   return out;
 }

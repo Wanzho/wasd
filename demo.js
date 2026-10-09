@@ -19,7 +19,7 @@
   var LEVELS = { easy: [3, 2.2, 3.4], normal: [5, 1, 2.1], hard: [9, 0.4, 0.85] };   // blobs at once, spawn gap s
   var IDLE_MS = 8000, DRAG_PX = 24, TAU = Math.PI * 2, SQ = 0.64;   // SQ: y squash of the 3/4 view
   var CODES = { KeyW: 'w', ArrowUp: 'w', KeyA: 'a', ArrowLeft: 'a', KeyS: 's', ArrowDown: 's', KeyD: 'd', ArrowRight: 'd',
-    Space: 'space', KeyF: 'f', ShiftLeft: 'shift', ShiftRight: 'shift', KeyR: 'r', KeyQ: 'q',
+    Space: 'space', KeyF: 'f', ShiftLeft: 'shift', ShiftRight: 'shift', KeyR: 'r', KeyQ: 'q', KeyC: 'c',
     Digit1: '1', Digit2: '2', Digit3: '3', Numpad1: '1', Numpad2: '2', Numpad3: '3' };
   var MBTN = ['ml', 'mm', 'mr', 'm4', 'm5'], MBIT = [1, 4, 2, 8, 16];   // mouse buttons: left, middle, right, side 4, side 5
   var MOVE = { w: 1, a: 1, s: 1, d: 1 }, SKEY = { k1: 0, k2: 1, k3: 2 };
@@ -27,10 +27,15 @@
   // jump = A, attack = X, fwd = LB (forward dodge), roll = right stick (directional dodge), bow = RT, k1-3 = Y B RB.
   var LAYOUTS = {
     rec: { name: 'Recommended', main: { jump: 'space', attack: 'ml', fwd: 'shift', roll: 'mr', bow: 'm4', k1: 'q', k2: '2', k3: '3' },
-      also: { f: 'jump', 1: 'k1' } },
+      also: { f: 'jump', 1: 'k1', c: 'bow' } },      // c: the bow on a key too (RT: it shoots the way you face). Demo only, for now
     off: { name: 'Official layout', main: { jump: 'space', attack: 'ml', fwd: 'm5', roll: 'r', bow: 'mr', k1: '1', k2: '2', k3: '3' },
       also: { m4: 'roll' } }
   };
+  function bowKey() {                               // a keyboard key for the bow in this layout ('' if it's only on the mouse)
+    var b = LAYOUTS[layout].bind;
+    for (var k in b) if (b[k] === 'bow' && !/^m[lmr45]$/.test(k)) return k;
+    return '';
+  }
   Object.keys(LAYOUTS).forEach(function (id) {       // bind: key or button -> action
     var L = LAYOUTS[id], a;
     L.bind = {};
@@ -299,12 +304,12 @@
     }).join('') + '</div>';
   }
   function pressRow() {                              // "You press" for the chosen layout
-    var rec = layout === 'rec';
+    var rec = layout === 'rec', kb = bowKey();
     return item('<div class="wd-wasd">' + key('w', 'W', ' wd-w') + key('a', 'A') + key('s', 'S') + key('d', 'D') + '</div>', 'Move', ' wd-move') +
       (rec ? item(key('shift', 'Shift', ' wd-act wd-shift'), 'Dodge') : item(key('r', 'R', ' wd-act'), 'Roll')) +
       item(key('space', 'Space', ' wd-act wd-space'), 'Jump') + '<i class="wd-br"></i>' +
       item('<div class="wd-three">' + key(rec ? 'q' : '1', rec ? 'Q' : '1', ' wd-act') + key('2', '2', ' wd-act') +
-        key('3', '3', ' wd-act') + '</div>', 'Skills') +
+        key('3', '3', ' wd-act') + '</div>', 'Skills') + (kb ? item(key(kb, kb.toUpperCase(), ' wd-act'), 'Bow') : '') +
       item('<div class="wd-mouse"><i data-k="ml"></i><i data-k="mr"></i><i class="wd-side wd-s5" data-k="m5"></i>' +
         '<i class="wd-side wd-s4" data-k="m4"></i></div>', rec ? 'Attack · Roll<br>Side 4: Bow' : 'Attack · Bow<br>Side 4 Roll · 5 Dodge', ' wd-mitem');
   }
@@ -395,7 +400,8 @@
     releaseAll(); bot = {}; botUntil = {}; ai.drag = null;
     cv.setAttribute('aria-label', 'Playable demo: a hooded hero fights purple blobs in a torch-lit dungeon, using wasdmod’s ' +
       LAYOUTS[l].name + (l === 'rec' ? '. W A S D move, Space jumps, left click attacks, right click rolls (drag to roll ' +
-      'that way), Shift dodges forward, side button 4 draws the bow, Q 2 3 use skills.' : '. W A S D move, Space jumps, left ' +
+      'that way), Shift dodges forward, side button 4 draws the bow and aims at the cursor' + (bowKey() ? ', holding ' +
+      bowKey().toUpperCase() + ' draws it and shoots the way you face' : '') + ', Q 2 3 use skills.' : '. W A S D move, Space jumps, left ' +
       'click attacks, right click draws the bow and aims at the cursor, R or side button 4 rolls, side button 5 dodges ' +
       'forward, 1 2 3 use skills.') + ' The panel below shows the keys you press turning into the controller input the game sees.');
     if (save) remember('wasdmod-demo-layout', l);
@@ -433,23 +439,23 @@
   }
   function hud() {
     var k, any = false, mag = Math.hypot(pad.lx, pad.ly), fl = T < pad.flick, bow = !!hero.bow, ad = bow ? aimDir() : null;
-    var ds = bow || fl ? null : dragStick();
+    var ds = bow || fl ? null : dragStick(), rsAim = bow && bowBy !== 'key' && bowBy !== 'botc';   // a bow key aims by facing
     if (ds) ad = ds;                                 // the knob follows the drag (lighter), then flicks on release
     if (ui.pad.rs._drag !== !!ds) { ui.pad.rs._drag = !!ds; ui.pad.rs.classList.toggle('drag', !!ds); }
     for (k in ui.keys) lit(ui.keys[k], pressed(k));
     lit(ui.pad.ls, mag > 0.12);
-    lit(ui.pad.rs, fl || bow || !!ds);
+    lit(ui.pad.rs, fl || rsAim || !!ds);
     lit(ui.pad.a, act('jump'));
     lit(ui.pad.x, act('attack'));
     lit(ui.pad.lb, act('fwd'));
     lit(ui.pad.rt, bow || act('bow'));
     knob(ui.lknob, pad.lx, pad.ly);
-    knob(ui.rknob, bow || ds ? ad[0] : fl ? pad.rx : 0, bow || ds ? ad[1] : fl ? pad.ry : 0);
-    if (ui._bow !== bow) {                           // drawing the bow: WASD can't move you, the right stick aims
-      ui._bow = bow;
+    knob(ui.rknob, rsAim || ds ? ad[0] : fl ? pad.rx : 0, rsAim || ds ? ad[1] : fl ? pad.ry : 0);
+    if (ui._bow !== bow + '' + rsAim) {              // drawing the bow: WASD can't move you, the right stick aims
+      ui._bow = bow + '' + rsAim;
       root.classList.toggle('wd-aiming', bow);
       root.classList.toggle('wd-cursor', bow && bowBy === 'mouse');
-      ui.rscap.textContent = bow ? 'Aim' : 'Roll';
+      ui.rscap.textContent = rsAim ? 'Aim' : 'Roll';
     }
     SKILLS.forEach(function (s, i) {                 // Y B RB, and the skill bar's cooldown sweep
       lit(ui.pad[s.pad], act('k' + (i + 1)));
@@ -500,8 +506,8 @@
     lastInput = performance.now();
     if (mode === 'player') return;
     mode = 'player';
-    bot = {}; botUntil = {}; ai.slam = false; ai.drag = null; skReady = [T, T, T];   // all three skills ready to try
-    if (bowBy === 'bot') { hero.bow = null; bowBy = null; }
+    bot = {}; botUntil = {}; ai.slam = false; ai.drag = null; ai.bk = null; skReady = [T, T, T];   // all three skills ready to try
+    if (/^bot/.test(bowBy)) { hero.bow = null; bowBy = null; }
     if (intro < INTRO) settle();                     // mid-arrival: everyone lands at once
     score = 0; setScore();
     root.classList.add('wd-playing');
@@ -591,6 +597,7 @@
     else if (a === 'fwd') dodge(hero.fx, hero.fy, true);
     else if (a === 'roll') dodgeMove();
     else if (a in SKEY) skill(SKEY[a]);
+    else if (a === 'bow') bowStart('key');           // a key on RT: hold to draw, let go to fire (keyup)
   }
   function keydown(e) {
     if (e.code === 'Escape' && mode === 'player') { giveBack(); return; }
@@ -612,7 +619,11 @@
     flash[k] = T + 0.12;
     press1(a);
   }
-  function keyup(e) { if (down[e.code]) { delete down[e.code]; syncHeld(); } }
+  function keyup(e) {
+    if (!down[e.code]) return;
+    delete down[e.code]; syncHeld();
+    if (bowBy === 'key' && LAYOUTS[layout].bind[CODES[e.code]] === 'bow') bowRelease();
+  }
   function toAim(e) {                                // the crosshair follows the mouse over the game
     var r = cv.getBoundingClientRect();
     if (!r.width) return;
@@ -641,7 +652,8 @@
   }
   function mousemove(e) {
     if (bowBy === 'mouse' || e.target === cv) toAim(e);
-    for (var b in mbtn) if (!(e.buttons & MBIT[b])) letGo(b);   // released outside the window
+    for (var b in mbtn) if (b < 3 && !(e.buttons & MBIT[b])) letGo(b);   // released outside the window (side buttons
+                                                     // aren't in e.buttons everywhere: they wait for their mouseup)
     if (!drag) return;
     var dx = e.clientX - drag.x, dy = e.clientY - drag.y, l = Math.hypot(dx, dy);
     drag.l = l; if (l) { drag.vx = dx / l; drag.vy = dy / l; }   // for the live right stick in the HUD
@@ -679,6 +691,18 @@
     touch = null; tdir = -1; syncHeld();
   }
 
+  // Mouse side buttons (3, 4) are the browser's Back and Forward, and Chrome goes back on their mouseup unless it's
+  // prevented. Not while the game has the player: the pointer on the game, a side press that began on it, or
+  // playing with the pointer on the move list. Elsewhere on the page they work as usual. (Not pointerdown: cancelling
+  // it would hold back the mousedown and mouseup the game needs, and Chrome then goes back anyway.)
+  var sideOn = {};
+  function sideGuard(e) {
+    if (e.button < 3) return;
+    var t = e.target instanceof Node ? e.target : null, on = !!t && ui.frame.contains(t);
+    if (e.type === 'mousedown') sideOn[e.button] = on;
+    if (on || sideOn[e.button] || (mode === 'player' && onscreen && rail && t && rail.el.contains(t))) e.preventDefault();
+  }
+
   /* ---------- simulation ---------- */
 
   function newHero() {
@@ -698,7 +722,7 @@
   function stepHero(dt) {
     var h = hero, mx = pad.lx, my = pad.ly, ml = Math.hypot(mx, my), vx, vy;
     if (h.bow) {                                     // drawing the bow: stand still, turn to the crosshair
-      if (bowBy !== 'mouse') aimAt(bowBy === 'touch' ? aim(0) : ai.tgt, dt);   // touch and autopilot aim themselves
+      if (bowBy !== 'mouse') aimAt(bowBy === 'bot' ? ai.tgt : aim(0), dt);   // keys and touch aim by facing, like the skills
       var d = aimDir();
       h.bow.t += dt; h.fx = d[0]; h.fy = d[1]; h.face = faceOf(d[0], d[1]);
     } else if (ml > 0.3 && h.roll <= 0 && !h.slam) {
@@ -1018,7 +1042,7 @@
   /* ---------- autopilot: shows one move at a time, pressing real keys so the HUD lights up ---------- */
 
   var WAY = [[104, 84], [216, 84], [252, 132], [200, 160], [116, 160], [68, 130]];   // a lap of the room
-  var ai = { focus: 'move', since: 0, next: 0, slam: false, drag: null, tgt: null, dir: -1, wp: 0, n: 0, bowDur: 0.8 };
+  var ai = { focus: 'move', since: 0, next: 0, slam: false, drag: null, tgt: null, dir: -1, wp: 0, n: 0, bowDur: 0.8, bk: null };
   function press(k, dur) { bot[k] = 1; botUntil[k] = T + dur; }
   function hold(k) { bot[k] = 1; delete botUntil[k]; }
   function steer(i) { var d = i >= 0 ? DIRS[i] : [0, 0]; bot.w = d[1] < 0; bot.s = d[1] > 0; bot.a = d[0] < 0; bot.d = d[0] > 0; }
@@ -1080,16 +1104,20 @@
       press(K('jump'), 0.16); jump(); ai.n++; ai.next = T + 0.75;
     },
     bow: function () {                               // the farthest blob: hold, aim, let go at a full draw
-      steer(-1); hold(K('bow')); bowStart('bot');
-      ai.tgt = closest(true); ai.bowDur = rnd(0.78, 0.95); ai.next = T + 0.5;
+      var f = closest(true), kb = bowKey();
+      if (kb && ai.n % 2) {                          // every other shot on the bow key: turn to the blob first
+        if (!face(f)) return;
+        ai.bk = kb; bowStart('botc');
+      } else { steer(-1); ai.bk = K('bow'); bowStart('bot'); }
+      hold(ai.bk); ai.n++; ai.tgt = f; ai.bowDur = rnd(0.78, 0.95); ai.next = T + 0.5;
     }
   };
   function autopilot() {
-    var h = hero, bk = K('bow'), t;
-    if (bot[bk] && !h.bow) bot[bk] = 0;              // the draw was cut short (a dodge, a jump): let go
-    if (h.bow && bowBy === 'bot') {                  // aiming: the crosshair glides onto the target, then loose
+    var h = hero, t;
+    if (ai.bk && !h.bow) { bot[ai.bk] = 0; ai.bk = null; }   // the draw was cut short (a dodge, a jump): let go
+    if (h.bow && /^bot/.test(bowBy)) {               // aiming: the crosshair glides onto the target, then loose
       if (!ai.tgt || ai.tgt.b.dead) ai.tgt = closest();
-      if (h.bow.t >= ai.bowDur || ai.focus !== 'bow') { bot[bk] = 0; bowRelease(); ai.next = T + 0.45; }
+      if (h.bow.t >= ai.bowDur || ai.focus !== 'bow') { bot[ai.bk] = 0; ai.bk = null; bowRelease(); ai.next = T + 0.45; }
       return;
     }
     if (ai.drag) {                                   // a roll: the button is held and dragged; let go to roll that way
@@ -1524,9 +1552,9 @@
   function railKeys() {                              // the keys and words for the chosen layout
     var off = layout === 'off';
     FOCI.forEach(function (m, i) {
-      var L = LESSONS[m];
-      rail.items[i].lastChild.innerHTML = '<span class="tr-keys">' + keyHTML(L[off ? 2 : 1]) + '</span>' +
-        '<span class="tr-desc">' + (off && L[4] || L[3]) + '</span>';
+      var L = LESSONS[m], spec = L[off ? 2 : 1], text = off && L[4] || L[3], kb = bowKey();
+      if (m === 'bow' && kb) { spec += ' or ' + kb; text = text.replace(', let go', ', or hold ' + kb.toUpperCase() + ' to shoot the way you face; let go'); }
+      rail.items[i].lastChild.innerHTML = '<span class="tr-keys">' + keyHTML(spec) + '</span><span class="tr-desc">' + text + '</span>';
     });
     fillCard();
   }
@@ -1589,7 +1617,7 @@
   }
   function celebrate() {                             // all six: pixel confetti in the game, a friendly line and Download beside it
     rail.el.classList.add('is-done');
-    setTimeout(function () { if (rail.line) rail.line.textContent = 'That’s every move. You’re ready for the real thing.'; }, 60);
+    setTimeout(function () { if (rail.line) rail.line.textContent = 'That’s all six moves. Now try them in the game.'; }, 60);
     if (reduced) return;
     var C = ['#ffb340', '#ff6a3d', '#ff3d77', '#a259ff', '#5bb5e0', '#6cc27f', '#e8b83a', '#ffffff'];
     burst(hero.x, hero.y, 12, 30, C, 50, 120, 1.4, true);   // a pop of colour from the hero, and a shower from the top
@@ -1726,6 +1754,7 @@
     cv.addEventListener('pointermove', pmove);
     cv.addEventListener('pointerup', pup);
     cv.addEventListener('pointercancel', pup);
+    ['mousedown', 'mouseup', 'pointerup', 'auxclick'].forEach(function (t) { document.addEventListener(t, sideGuard, true); });
     ui.frame.addEventListener('pointerenter', function (e) { hover = e.pointerType === 'mouse'; });
     ui.frame.addEventListener('pointerleave', function () { hover = false; });
     if ('IntersectionObserver' in window) {
