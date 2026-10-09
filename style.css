@@ -382,7 +382,7 @@ kbd.wide { min-width: 4.2em; }
 }
 .hero-eyebrow img { width: 1.2em; height: 1.2em; image-rendering: pixelated; }
 .hero-eyebrow span { color: var(--text-2); font-weight: 600; }
-.hero h1 {
+.hero .hero-title {
   font-size: clamp(44px, min(7.4vw, 11.8vh), 104px);
   line-height: 1.04;
   font-weight: 600;
@@ -729,7 +729,7 @@ kbd.wide { min-width: 4.2em; }
 }
 @media (max-width: 734px) {
   .hero-eyebrow { font-size: 17px; gap: 4px 8px; }
-  .hero h1 { font-size: clamp(40px, 12vw, 56px); }
+  .hero .hero-title { font-size: clamp(40px, 12vw, 56px); }
   .hero-sub { font-size: 19px; max-width: 20em; }
   .hero .cta-row { flex-direction: column; gap: 16px; }
 }
