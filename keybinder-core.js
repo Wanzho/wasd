@@ -52,14 +52,14 @@ const ACTIONS = [
   { id: "left", sec: "act", cat: "move", label: _("Move left"), move: "Left", badge: _("L-stick") },
   { id: "down", sec: "act", cat: "move", label: _("Move down"), move: "Down", badge: _("L-stick") },
   { id: "right", sec: "act", cat: "move", label: _("Move right"), move: "Right", badge: _("L-stick") },
-  { id: "dodge", sec: "act", cat: "move", label: _("Directional dodge"), sub: _("tap: dodge the way you're moving · hold, move the mouse, let go: dodge that way"), move: "DodgeMouse", badge: _("R-stick"), game: _("Directional Dodge") },
-  { id: "fdodge", sec: "act", cat: "move", label: _("Forward dodge"), sub: _("quick dodge the way you face"), pad: "LB", game: _("Forward Dodge") },
-  { id: "jump", sec: "act", cat: "action", label: _("Jump / interact"), sub: _("on a controller, A is jump and interact; in the game's keyboard settings, interact is on the attack key"), pad: "A", game: _("Jump") },
+  { id: "dodge", sec: "act", cat: "move", label: _("Directional dodge"), sub: _("Tap: dodge the way you're moving · hold, move the mouse, let go: dodge that way"), move: "DodgeMouse", badge: _("R-stick"), game: _("Directional Dodge") },
+  { id: "fdodge", sec: "act", cat: "move", label: _("Forward dodge"), sub: _("Quick dodge the way you face"), pad: "LB", game: _("Forward Dodge") },
+  { id: "jump", sec: "act", cat: "action", label: _("Jump / interact"), sub: _("On a controller, A is jump and interact; in the game's keyboard settings, interact is on the attack key"), pad: "A", game: _("Jump") },
   // The game's keyboard settings have interact and melee as one action ("Interact, Melee
   // Attack"), while on a controller interact is A, with jump. So that action's keys may also
   // be your Jump / interact keys (an F there to interact is right): alsoOk.
-  { id: "melee", sec: "act", cat: "action", label: _("Melee"), sub: _("in the air: heavy jump attack"), pad: "X", game: _("Interact, Melee Attack"), alsoOk: "jump" },
-  { id: "ranged", sec: "act", cat: "action", label: _("Ranged (bow)"), sub: _("on a mouse button: hold it to aim at the cursor"), pad: "RT", game: _("Ranged Attack") },
+  { id: "melee", sec: "act", cat: "action", label: _("Melee"), sub: _("In the air: heavy jump attack"), pad: "X", game: _("Interact, Melee Attack"), alsoOk: "jump" },
+  { id: "ranged", sec: "act", cat: "action", label: _("Ranged (bow)"), sub: _("On a mouse button: hold it to aim at the cursor"), pad: "RT", game: _("Ranged Attack") },
   { id: "art1", sec: "act", cat: "action", label: _("Artifact 1"), pad: "Y", game: _("Artifact 1") },
   { id: "art2", sec: "act", cat: "action", label: _("Artifact 2"), pad: "B", game: _("Artifact 2") },
   { id: "art3", sec: "act", cat: "action", label: _("Artifact 3"), pad: "RB", game: _("Artifact 3") },
@@ -71,15 +71,15 @@ const ACTIONS = [
   { id: "tp2", sec: "act", cat: "action", label: _("Teleport to player 2"), kb: "pass", game: _("Teleport To Player 2") },
   { id: "tp3", sec: "act", cat: "action", label: _("Teleport to player 3"), kb: "pass", game: _("Teleport To Player 3") },
   { id: "tp4", sec: "act", cat: "action", label: _("Teleport to player 4"), kb: "pass", game: _("Teleport To Player 4") },
-  { id: "inventory", sec: "menu", cat: "menu", label: _("Inventory"), sub: _("tap: full inventory · hold: mini inventory"), pad: "DUp", kb: "menu", opens: true, game: _("Inventory, Mini Inventory") },
+  { id: "inventory", sec: "menu", cat: "menu", label: _("Inventory"), sub: _("Tap: full inventory · hold: mini inventory"), pad: "DUp", kb: "menu", opens: true, game: _("Inventory, Mini Inventory") },
   { id: "map", sec: "menu", cat: "menu", label: _("World map"), pad: "Back", kb: "menu", opens: true, game: _("World Map") },
   { id: "wheel", sec: "menu", cat: "menu", label: _("Menu wheel"), pad: "Start", kb: "menu", opens: true, game: _("Menu Wheel") },
-  { id: "quest", sec: "menu", cat: "menu", label: _("Quest log / track quest"), sub: _("tap: track · hold: quest log"), pad: "DRight", kb: "menu", game: _("Quest Log, Track Quest") },
+  { id: "quest", sec: "menu", cat: "menu", label: _("Quest log / track quest"), sub: _("Tap: track · hold: quest log"), pad: "DRight", kb: "menu", game: _("Quest Log, Track Quest") },
   { id: "social", sec: "menu", cat: "menu", label: _("Social menu"), pad: "DDown", kb: "menu", opens: true, game: _("Social Menu") },
-  { id: "emotes", sec: "menu", cat: "menu", label: _("Emotes"), sub: _("hold for the wheel"), pad: "RS", kb: "menu", game: _("Emotes") },
-  { id: "collect", sec: "menu", cat: "menu", label: _("Collectibles"), sub: _("capes, pets, books"), kb: "menu", game: _("Collectibles"), group: _("Keyboard only") },
+  { id: "emotes", sec: "menu", cat: "menu", label: _("Emotes"), sub: _("Hold for the wheel"), pad: "RS", kb: "menu", game: _("Emotes") },
+  { id: "collect", sec: "menu", cat: "menu", label: _("Collectibles"), sub: _("Capes, pets, books"), kb: "menu", game: _("Collectibles"), group: _("Keyboard only") },
   { id: "events", sec: "menu", cat: "menu", label: _("Event log"), kb: "menu", game: _("Event Log") },
-  { id: "esc", sec: "menu", cat: "menu", label: _("Game menu / back"), sub: _("in a menu: back to the controller"), kb: "back", fixedGame: "Escape" },
+  { id: "esc", sec: "menu", cat: "menu", label: _("Game menu / back"), sub: _("In a menu: back to the controller"), kb: "back", fixedGame: "Escape" },
   // In the game's keyboard settings only: no row, no keys of yours.
   { id: "heavy", hidden: true, game: _("Heavy Jump Attack"), note: _("the mod does it with jump, then melee in the air") },
   { id: "root", hidden: true, game: _("Root"), note: _("no controller equivalent") },
@@ -109,7 +109,7 @@ const PAD_ORDER = ["A", "B", "X", "Y", "LB", "RB", "LT", "RT", "Back", "Start", 
 // the mod, but their game keys count for disabling and the checklist.
 const GAME_DEFAULTS = { dodge: ["R", "Mouse4"], fdodge: ["Mouse5"], jump: ["Space"], melee: ["Mouse1"], ranged: ["Mouse2"], art1: ["1"], art2: ["2"], art3: ["3"],
   potion: ["E"], trail: ["Mouse3"], statue: ["Z"], tp1: ["F1"], tp2: ["F2"], tp3: ["F3"], tp4: ["F4"], inventory: ["I", "Tab"], map: ["M"], wheel: ["S"], quest: ["J"],
-  social: ["F"], tpplayer: ["X"], emotes: ["G"], collect: ["U"], events: ["K"], heavy: ["Q", "Mouse4"], root: ["Shift"] };
+  social: ["F"], tpplayer: ["X"], emotes: ["G"], collect: ["U"], events: ["K"], heavy: ["Q", "Mouse4"], root: ["LShift"] };
 // Default layout: the game's own keyboard keys, as a controller. The menu wheel
 // moves from S (a movement key here) to Tab, so the inventory is I only.
 const DEFAULT_INI = `[Move]
@@ -155,7 +155,7 @@ MouseAfter=None
 MenuTapMs=300
 TypeKey=T
 PassKeys=Z, F1, F2, F3, F4, X
-Cursor=Alt
+Cursor=LAlt
 CursorMode=Hold
 Toggle=Backtick
 Legend=F9
@@ -170,12 +170,13 @@ social=Keyboard
 tpplayer=Keyboard
 emotes=Keyboard
 [Options]
-HideMouse=1
 BlockOtherKeys=1
 DetectTextBoxes=1
 TypedCharacters=0
 Legend=1
 LegendSeconds=15
+TypingBanner=1
+OffBanner=1
 Language=Auto
 RequireFocus=1
 AlwaysConnected=1
@@ -201,7 +202,7 @@ A=Space, F
 B=2
 X=Mouse1
 Y=Q
-LB=Shift
+LB=LShift
 RB=3
 LT=R
 RT=Mouse4, C
@@ -230,7 +231,7 @@ TypeKey=T
 PassKeys=X, Z, F1, F2, F3, F4
 DisabledKeys=1, I, J, U
 InstantKeys=
-Cursor=Alt
+Cursor=LAlt
 CursorMode=Hold
 Toggle=Backtick
 Legend=F9
@@ -249,12 +250,13 @@ social=Keyboard
 tpplayer=Keyboard
 emotes=Keyboard
 [Options]
-HideMouse=1
 BlockOtherKeys=1
 DetectTextBoxes=1
 TypedCharacters=0
 Legend=1
 LegendSeconds=15
+TypingBanner=1
+OffBanner=1
 Language=Auto
 RequireFocus=1
 AlwaysConnected=1
@@ -262,17 +264,24 @@ Log=1`;
 const BUILTIN = { default: { name: _("Official layout"), text: DEFAULT_INI, file: "default.txt" }, author: { name: _("Recommended"), text: AUTHOR_INI, file: "author.txt" } };
 
 // =================================================================== key names
-const CODE_NAMES = { Space: "Space", Enter: "Enter", NumpadEnter: "Enter", Escape: "Escape", Tab: "Tab", ShiftLeft: "Shift", ShiftRight: "Shift",
-  ControlLeft: "Ctrl", ControlRight: "Ctrl", AltLeft: "Alt", AltRight: "Alt", Backspace: "Backspace", CapsLock: "CapsLock",
+// Shift, Ctrl and Alt: the left and the right key are different keys (LShift, RShift...).
+const CODE_NAMES = { Space: "Space", Enter: "Enter", NumpadEnter: "Enter", Escape: "Escape", Tab: "Tab", ShiftLeft: "LShift", ShiftRight: "RShift",
+  ControlLeft: "LCtrl", ControlRight: "RCtrl", AltLeft: "LAlt", AltRight: "RAlt", Backspace: "Backspace", CapsLock: "CapsLock",
   ArrowUp: "Up", ArrowDown: "Down", ArrowLeft: "Left", ArrowRight: "Right", Backquote: "Backtick", Minus: "-", Equal: "=",
   BracketLeft: "[", BracketRight: "]", Semicolon: ";", Quote: "'", Comma: ",", Period: ".", Slash: "/" };
-const ALIASES = { esc: "Escape", escape: "Escape", return: "Enter", enter: "Enter", control: "Ctrl", ctrl: "Ctrl", grave: "Backtick", tilde: "Backtick",
-  backtick: "Backtick", space: "Space", tab: "Tab", shift: "Shift", lshift: "Shift", leftshift: "Shift", alt: "Alt", backspace: "Backspace", capslock: "CapsLock",
+// A plain Shift, Ctrl or Alt (files from before the sides were apart) is the left key, as in the mod.
+const ALIASES = { esc: "Escape", escape: "Escape", return: "Enter", enter: "Enter", grave: "Backtick", tilde: "Backtick", backtick: "Backtick", space: "Space", tab: "Tab",
+  shift: "LShift", lshift: "LShift", leftshift: "LShift", rshift: "RShift", rightshift: "RShift",
+  ctrl: "LCtrl", control: "LCtrl", lctrl: "LCtrl", leftctrl: "LCtrl", lcontrol: "LCtrl", leftcontrol: "LCtrl", rctrl: "RCtrl", rightctrl: "RCtrl", rcontrol: "RCtrl", rightcontrol: "RCtrl",
+  alt: "LAlt", lalt: "LAlt", leftalt: "LAlt", option: "LAlt", loption: "LAlt", leftoption: "LAlt", ralt: "RAlt", rightalt: "RAlt", roption: "RAlt", rightoption: "RAlt",
+  backspace: "Backspace", capslock: "CapsLock",
   up: "Up", down: "Down", left: "Left", right: "Right", mouse1: "Mouse1", mouse2: "Mouse2", mouse3: "Mouse3", mouse4: "Mouse4", mouse5: "Mouse5" };
-const VK_NAMES = { 0x20: "Space", 0x0D: "Enter", 0x1B: "Escape", 0x09: "Tab", 0x10: "Shift", 0x11: "Ctrl", 0x12: "Alt", 0x08: "Backspace", 0x14: "CapsLock",
+const VK_NAMES = { 0x20: "Space", 0x0D: "Enter", 0x1B: "Escape", 0x09: "Tab", 0x10: "LShift", 0x11: "LCtrl", 0x12: "LAlt", 0x08: "Backspace", 0x14: "CapsLock",
+  0xA0: "LShift", 0xA1: "RShift", 0xA2: "LCtrl", 0xA3: "RCtrl", 0xA4: "LAlt", 0xA5: "RAlt",
   0x26: "Up", 0x28: "Down", 0x25: "Left", 0x27: "Right", 0x01: "Mouse1", 0x02: "Mouse2", 0x04: "Mouse3", 0x05: "Mouse4", 0x06: "Mouse5", 0xC0: "Backtick" };
 const PRETTY = { Up: "↑", Down: "↓", Left: "←", Right: "→", Escape: "Esc", Backtick: "`", Mouse1: _("Left click"), Mouse2: _("Right click"),
-  Mouse3: _("Middle click"), Mouse4: _("Side 4 (back)"), Mouse5: _("Side 5 (front)"), CapsLock: "Caps Lock", "?": "?" };
+  Mouse3: _("Middle click"), Mouse4: _("Side 4 (back)"), Mouse5: _("Side 5 (front)"), CapsLock: "Caps Lock", "?": "?",
+  LShift: _("Left Shift"), RShift: _("Right Shift"), LCtrl: _("Left Ctrl"), RCtrl: _("Right Ctrl"), LAlt: _("Left Alt"), RAlt: _("Right Alt") };
 const pretty = k => PRETTY[k] ? t(PRETTY[k]) : k;
 const isMouse = k => /^Mouse[1-5]$/.test(k);
 const isArrow = k => ["Up", "Down", "Left", "Right"].includes(k);
@@ -281,6 +290,7 @@ function normKey(raw) {
   let v = String(raw || "").trim();
   if (!v || /^none$/i.test(v)) return null;
   if (v === "?") return "?";
+  if (/^fn$/i.test(v)) return null; // the Mac's fn key never reaches the game
   if (v.length === 1) return /[a-z]/.test(v) ? v.toUpperCase() : v;
   const lower = v.toLowerCase();
   if (ALIASES[lower]) return ALIASES[lower];
@@ -312,46 +322,59 @@ function parseIni(text) {
 }
 const get = (ini, sec, key) => { const e = (ini[sec] || []).filter(([k]) => k.toLowerCase() === key.toLowerCase()); return e.length ? e[e.length - 1][1] : undefined; };
 
-// Sliders: what they do, with what lower and higher values mean for the player.
+// Sliders: what they do, with what lower and higher values mean for the player. `place`: where
+// it's shown ("move": Advanced… under Move right, "dodge": Advanced… under Directional dodge,
+// "menu": at the end of Menus); `under`: the on / off option it belongs to instead (shown under
+// it, and only while it's on).
 const TUNE = [
-  { sec: "Movement", key: "AccelMs", label: _("Speed-up time"), sub: _("how long your movement keys take to get to full speed. 0 ms = full speed at once; higher = a softer start"), min: 0, max: 200, step: 5, unit: "ms" },
-  { sec: "Movement", key: "DecelMs", label: _("Stopping time"), sub: _("how long you keep gliding after you let go. 0 ms = stop at once; higher = a softer stop"), min: 0, max: 200, step: 5, unit: "ms" },
-  { sec: "Movement", key: "TurnMs", label: _("Turn time"), sub: _("a full 180° turn (90° takes half). 0 ms = sharpest; higher = smoother, but it can feel less responsive"), min: 0, max: 1000, step: 10, unit: "ms" },
-  { sec: "Move", key: "DodgeDragPx", label: _("Dodge drag distance"), sub: _("while you hold Directional dodge, moving the mouse this far dodges that way instead of the way you're moving. Lower = a small move is enough; higher = it takes a bigger move"), min: 10, max: 150, step: 5, unit: "px" },
-  { sec: "Move", key: "DodgeFlickMs", label: _("Dodge stick time"), sub: _("how long each dodge pushes the controller's right stick. Lower = quicker dodges back to back, but too short and the game can miss one; higher = more reliable"), min: 30, max: 200, step: 10, unit: "ms" },
-  { sec: "Mouse", key: "MouseModeOnMovePx", label: _("Mouse move that brings back the cursor"), sub: _("how far you move the mouse, while not walking, before the cursor comes back. Lower = a small move does it; higher = it takes a bigger move, so bumps don't. 0 = never (bump correction is then off too)"), min: 0, max: 150, step: 5, unit: "px" },
-  { sec: "Mouse", key: "BumpNudgePct", label: _("Bump correction"), sub: _("a small mouse bump can switch the game's button prompts to keyboard; once the mouse stops, the mod pushes the right stick lightly to switch them back. Lower = a lighter push (lower it if it ever makes you dodge); 0 = off"), min: 0, max: 60, step: 5, unit: "%" },
-  { sec: "Keys", key: "MenuTapMs", label: _("Tap vs hold"), sub: _("menu keys: a press shorter than this is a tap (the menu opens and the cursor stays), a longer one a hold (a quick overlay like the mini inventory, gone when you let go). Higher = longer presses still count as taps"), min: 100, max: 600, step: 25, unit: "ms" },
-  { sec: "Options", key: "LegendSeconds", label: _("Key list at start"), sub: _("how long the on-screen key list shows when the game starts. 0 = only when you press {legend}"), min: 0, max: 60, step: 5, unit: "s" },
+  { sec: "Movement", key: "AccelMs", place: "move", label: _("Speed-up time"), sub: _("How long your movement keys take to get to full speed. 0 ms = full speed at once; higher = a softer start"), min: 0, max: 200, step: 5, unit: "ms" },
+  { sec: "Movement", key: "DecelMs", place: "move", label: _("Stopping time"), sub: _("How long you keep gliding after you let go. 0 ms = stop at once; higher = a softer stop"), min: 0, max: 200, step: 5, unit: "ms" },
+  { sec: "Movement", key: "TurnMs", place: "move", label: _("Turn time"), sub: _("A full 180° turn (90° takes half). 0 ms = sharpest; higher = smoother, but it can feel less responsive"), min: 0, max: 1000, step: 10, unit: "ms" },
+  { sec: "Move", key: "DodgeDragPx", place: "dodge", label: _("Dodge drag distance"), sub: _("While you hold Directional dodge, moving the mouse this far dodges that way instead of the way you're moving. Lower = a small move is enough; higher = it takes a bigger move"), min: 10, max: 150, step: 5, unit: "px" },
+  { sec: "Move", key: "DodgeFlickMs", place: "dodge", label: _("Dodge stick time"), sub: _("How long each dodge pushes the controller's right stick. Lower = quicker dodges back to back, but too short and the game can miss one; higher = more reliable"), min: 30, max: 200, step: 10, unit: "ms" },
+  { sec: "Mouse", key: "MouseModeOnMovePx", under: "MouseMoveSwitches", label: _("Mouse move that brings back the cursor"), sub: _("How far you move the mouse, while not walking, before the cursor comes back. Lower = a small move does it; higher = it takes a bigger move, so bumps don't. 0 = never (bump correction is then off too)"), min: 0, max: 150, step: 5, unit: "px" },
+  { sec: "Mouse", key: "BumpNudgePct", under: "MouseMoveSwitches", label: _("Bump correction"), sub: _("A small mouse bump can switch the game's button prompts to keyboard; once the mouse stops, the mod pushes the right stick lightly to switch them back. Lower = a lighter push (lower it if it ever makes you dodge); 0 = off"), min: 0, max: 60, step: 5, unit: "%" },
+  { sec: "Keys", key: "MenuTapMs", place: "menu", label: _("Tap vs hold"), sub: _("Menu keys: a press shorter than this is a tap (the menu opens and the cursor stays), a longer one a hold (a quick overlay like the mini inventory, gone when you let go). Higher = longer presses still count as taps"), min: 100, max: 600, step: 25, unit: "ms" },
+  { sec: "Options", key: "LegendSeconds", under: "Legend", label: _("Key list at start"), sub: _("How long the on-screen key list shows when the game starts. 0 = only when you press {legend}"), min: 0, max: 60, step: 5, unit: "s" },
 ];
 const flag = { read: v => v === "1", write: b => b ? "1" : "0" };
 // On / off options, each with what happens when it's on and when it's off (only the one
-// that matches is shown). {cursor}, {toggle}, {legend} and {bow} are filled in where shown.
+// that matches is shown, behind its "i"). {cursor}, {toggle}, {legend}, {bow} and {move} (your
+// movement keys) are filled in where shown. `choice`: shown as two named ways instead of a
+// switch, [value, name] each; `bow`: under the bow's row in the key list; `cursor`: on the
+// cursor key's row (its "i" is that row's). `place`: where it's shown ("map": under the keyboard
+// map, "mod:" and a mod key: under that key's row in Mod keys). `also`: a last
+// line of its "i", whichever way it's set. (HideMouse isn't one: the mod always hides mouse
+// movement from the game while you play.)
 const TOGGLES = [
-  { sec: "Mouse", key: "MouseMoveSwitches", label: _("Moving the mouse brings back the cursor"), read: v => v !== "0", write: flag.write,
-    on: _("move the mouse while you're not walking and the cursor comes back, so you can click; walking or a fight key hides it again"),
-    off: _("moving the mouse never brings back the cursor; only the cursor key ({cursor}), a menu key or the mod on / off key ({toggle}) do") },
-  { sec: "Keys", key: "CursorMode", label: _("Cursor key toggles the cursor"), read: v => /^toggle$/i.test(String(v).trim()), write: b => b ? "Toggle" : "Hold",
-    on: _("press {cursor} once to show the cursor, and again to hide it and go back to the controller (an open menu keeps it)"),
-    off: _("the cursor shows only while you hold {cursor}; letting go hides it and goes back to the controller, like Genshin (an open menu keeps it)") },
-  { sec: "Mouse", key: "CursorFromMiddle", label: _("Cursor comes back in the middle"), ...flag,
-    on: _("when moving the mouse brings the cursor back, it appears in the middle of the game window"),
-    off: _("when moving the mouse brings the cursor back, it appears where the mouse moved it (menus and the cursor key always put it in the middle)") },
-  { sec: "Mouse", key: "BowAimsWithMouse", label: _("Aim the bow with the mouse"), ...flag,
-    on: _("holding a mouse button that's on {bow} switches the game to keyboard and mouse, so the bow aims at the cursor; your movement keys wait until you let go"),
-    off: _("a mouse button on {bow} presses the controller's RT like any other key, so the bow aims the way your character faces") },
-  { sec: "Mouse", key: "KeepCursorInWindow", label: _("Keep the mouse inside the game window while playing"), ...flag,
-    on: _("while you play, the hidden cursor can't leave the game window (the mod puts it back in the middle while you walk), so a click can't land in another app"),
-    off: _("the hidden cursor can drift out of the game window, so a click can land in another app or on the desktop") },
-  { sec: "Options", key: "BlockOtherKeys", label: _("Block keys that aren't used"), ...flag,
-    on: _("while you play, keys this layout doesn't use never reach the game, so a stray press can't switch it to keyboard mode"),
-    off: _("keys this layout doesn't use reach the game, and pressing one can switch it to keyboard mode") },
-  { sec: "Options", key: "HideMouse", label: _("Hide mouse movement from the game while playing"), ...flag,
-    on: _("the game doesn't see your mouse move while you play, so it stays in controller mode"),
-    off: _("the game sees mouse movement while you play, which can switch it to keyboard mode") },
-  { sec: "Options", key: "Legend", label: _("On-screen key list"), ...flag,
-    on: _("a list of your keys shows over the game when it starts, for a moment after you save a layout, and when you press {legend}"),
-    off: _("the key list never shows over the game, even when you press {legend}") },
+  { sec: "Mouse", key: "MouseMoveSwitches", place: "mod:Cursor", label: _("When stationary, moving mouse releases cursor"), read: v => v !== "0", write: flag.write,
+    on: _("When not walking ({move}), moving the mouse releases the cursor so you can click. Walking again automatically captures the cursor."),
+    off: _("Moving the mouse never brings back the cursor; only the cursor key ({cursor}), a menu key or the mod on / off key ({toggle}) do"), also: _("Highly recommended.") },
+  { sec: "Keys", key: "CursorMode", label: _("Cursor key"), read: v => /^toggle$/i.test(String(v).trim()), write: b => b ? "Toggle" : "Hold", choice: [[true, _("Toggle")], [false, _("Long press")]], cursor: true,
+    on: _("Press {cursor} once to show the cursor, and again to hide it and go back to the controller (an open menu keeps it)"),
+    off: _("The cursor shows only while you hold {cursor}; letting go hides it and goes back to the controller, like Genshin (an open menu keeps it)") },
+  { sec: "Mouse", key: "CursorFromMiddle", place: "mod:Cursor", label: _("Cursor reappears in the middle"), ...flag,
+    on: _("When moving the mouse brings the cursor back, it appears in the middle of the game window"),
+    off: _("When moving the mouse brings the cursor back, it appears where the mouse moved it (menus and the cursor key always put it in the middle)") },
+  { sec: "Mouse", key: "BowAimsWithMouse", label: _("Aim bow with"), ...flag, choice: [[false, "WASD"], [true, _("Mouse")]], bow: true,
+    on: _("Holding a mouse button that's on {bow} switches the game to keyboard and mouse, so the bow aims at the cursor; your movement keys wait until you let go"),
+    off: _("A mouse button on {bow} presses the controller's RT like any other key, so the bow aims the way your character faces") },
+  { sec: "Mouse", key: "KeepCursorInWindow", place: "mod:Cursor", label: _("Keep the mouse inside the game window while playing"), ...flag,
+    on: _("While you play, the hidden cursor can't leave the game window (the mod puts it back in the middle while you walk), so a click can't land in another app"),
+    off: _("The hidden cursor can drift out of the game window, so a click can land in another app or on the desktop") },
+  { sec: "Options", key: "Legend", place: "map", label: _("On-screen key list"), ...flag,
+    on: _("A list of your keys shows over the game when it starts, for a moment after you save a layout, and when you press {legend}"),
+    off: _("The key list never shows over the game, even when you press {legend}") },
+  { sec: "Options", key: "BlockOtherKeys", place: "map", label: _("Block inactive keys"), ...flag,
+    on: _("While you play, keys this layout doesn't use never reach the game, so a stray press can't switch it to keyboard mode"),
+    off: _("Keys this layout doesn't use reach the game, and pressing one can switch it to keyboard mode") },
+  // The game's banners (missing from a file = on).
+  { sec: "Options", key: "TypingBanner", place: "mod:TypeKey", label: _("Show the typing banner"), read: v => v !== "0", write: flag.write,
+    on: _("While you type, a banner at the top of the game says so. You can also close it with its ×."),
+    off: _("While you type, only the amber frame around the game shows.") },
+  { sec: "Options", key: "OffBanner", place: "mod:Toggle", label: _("Show the \"wasdmod off\" banner"), read: v => v !== "0", write: flag.write,
+    on: _("While the mod is off, a banner at the top of the game says so. You can also close it with its ×."),
+    off: _("No banner shows while the mod is off.") },
 ];
 const TG = key => TOGGLES.find(o => o.key === key);
 
@@ -360,7 +383,7 @@ const TG = key => TOGGLES.find(o => o.key === key);
 function stateFromIni(text) {
   const ini = parseIni(text), def = parseIni(DEFAULT_INI);
   const val = (sec, key) => { const v = get(ini, sec, key); return v !== undefined ? v : get(def, sec, key); };
-  const st = { keys: {}, mode: {}, game: {}, mod: {}, num: {}, opt: {}, extraRemaps: [], extraMenuKeys: [], extraPass: [] };
+  const st = { keys: {}, mode: {}, game: {}, mod: {}, num: {}, opt: {}, custom: null };
   // The game's own keys: from the file, else the game's defaults.
   const parseGame = v => v === undefined ? null : String(v).split(",").slice(0, 2).map(x => x.trim()).map(x => !x || x === "-" || /^none$/i.test(x) ? null : x === "?" ? "?" : normKey(x));
   for (const a of ACTIONS) if (a.game) st.game[a.id] = parseGame(get(ini, "GameKeys", a.id)) || [...(GAME_DEFAULTS[a.id] || ["?"])];
@@ -378,7 +401,7 @@ function stateFromIni(text) {
   }
   for (const a of ACTIONS) {
     if (a.hidden) { st.keys[a.id] = []; continue; }
-    if (a.move) { st.keys[a.id] = splitKeys(val("Move", a.move)); continue; }
+    if (a.move) { const k = splitKeys(val("Move", a.move)); st.keys[a.id] = a.cat === "move" && a.id !== "dodge" ? k.slice(0, 1) : k; continue; } // one key per direction
     const padKeys = a.pad ? buttons[a.pad] : [];
     if (!a.kb) {
       st.keys[a.id] = a.id === "fdodge" ? uniq([...padKeys, ...splitKeys(val("Move", "Dodge"))]) : padKeys; // the old "quick dodge" is the forward dodge
@@ -398,9 +421,8 @@ function stateFromIni(text) {
   }
   // The bow's side-button remap is written from the bow row; drop it from the leftovers.
   takeRemaps(([f, t]) => st.keys.ranged.includes(f) && isMouse(f) && t === firstGame(ACT.ranged, st));
-  st.extraMenuKeys = menuKeys.filter(k => !usedDirect.has(k));
-  st.extraPass = passKeys.filter(k => !usedDirect.has(k));
-  st.extraRemaps = remaps;
+  // What's left (keys sent as they are, remaps no action explains) is Customization.
+  st.custom = readCustom(ini, passKeys.filter(k => !usedDirect.has(k)), menuKeys.filter(k => !usedDirect.has(k)), remaps, splitKeys(val("Keys", "InstantKeys")));
   st.mod.TypeKey = splitKeys(val("Keys", "TypeKey"));
   st.mod.Cursor = splitKeys(val("Keys", "Cursor"));
   st.mod.Toggle = splitKeys(val("Keys", "Toggle"));
@@ -413,6 +435,34 @@ function stateFromIni(text) {
   st.opt.ControllerMenus = cm !== undefined ? cm === "1" : ACTIONS.some(a => both(a) && a.id !== "inventory" && st.mode[a.id] === "pad");
   return st;
 }
+
+// Customization: shortcuts of your own, in two lists, each { name, keys (yours), game (the
+// game's key for it; none = your key as it is) }. "pass" ones reach the game straight away
+// (PassKeys, or a remap whose target is in InstantKeys), "menu" ones bring back the cursor
+// (MenuKeys, or a remap). The file keeps them in [Custom] (Pass= / Menu= name | your keys |
+// the game's key, and On=; the mod reads none of it), so names survive. While Customization
+// is off nothing of it is written: the shortcuts stay in the editor (turn it on again and they're
+// back) until the layout is saved, and then they're gone. A file from before (or edited by hand): every
+// key it sends that no action and no entry explains becomes an entry, and Customization is on.
+const CUSTOM_LISTS = [
+  { kind: "pass", cat: "mod", label: _("Always send to the game"), sub: _("Keys the game gets straight away, without bringing back the cursor (a screenshot key, for example). If the game has another key for it, the mod sends that one.") },
+  { kind: "menu", cat: "menu", label: _("Other menu shortcuts"), sub: _("Keys that open something in the game, so the cursor comes back for you to click. If the game has another key for it, the mod sends that one.") },
+];
+function readCustom(ini, pass, menu, remaps, instant) {
+  const cu = { on: false, pass: [], menu: [] }, saved = ini.Custom;
+  for (const [k, v] of saved || []) {
+    if (/^on$/i.test(k)) { cu.on = v.trim() === "1"; continue; }
+    const list = /^pass$/i.test(k) ? cu.pass : /^menu$/i.test(k) ? cu.menu : null;
+    if (!list) continue;
+    const [name = "", keys = "", game = ""] = v.split("|").map(x => x.trim());
+    list.push({ name, keys: splitKeys(keys).slice(0, 3), game: normKey(game) === "?" ? null : normKey(game) });
+  }
+  const sent = cu.on ? new Set(["pass", "menu"].flatMap(kind => cu[kind].flatMap(e => e.keys.map(k => kind + " " + k + " " + (e.game || k))))) : new Set();
+  const atoms = [...pass.map(k => ["pass", k, k]), ...menu.map(k => ["menu", k, k]), ...remaps.map(([f, g]) => [instant.includes(g) ? "pass" : "menu", f, g])];
+  for (const [kind, k, g] of atoms) if (!sent.has(kind + " " + k + " " + g)) { cu[kind].push({ name: "", keys: [k], game: g === k ? null : g }); cu.on = true; }
+  return cu;
+}
+const customOn = st => st.custom && st.custom.on ? CUSTOM_LISTS.flatMap(l => st.custom[l.kind].map(e => ({ ...l, e }))) : [];
 
 // How a row reaches the game right now: "move", "pad" or "kb".
 function route(a, st) { return a.hidden ? "none" : a.move ? "move" : both(a) ? st.mode[a.id] : a.pad ? "pad" : "kb"; }
@@ -437,7 +487,7 @@ function iniText(st) {
   const menuKeys = [], passKeys = [], remaps = [], instant = [];
   // Every key you press for something (the game's own key for an action you moved
   // elsewhere is disabled unless it's one of these).
-  const inputKeys = new Set([...ACTIONS.flatMap(a => st.keys[a.id]), ...MOD_ROWS.flatMap(r => r.get(st)), ...st.extraRemaps.map(([f]) => f)]);
+  const inputKeys = new Set([...ACTIONS.flatMap(a => st.keys[a.id]), ...MOD_ROWS.flatMap(r => r.get(st)), ...customOn(st).flatMap(c => c.e.keys)]);
   for (const a of ACTIONS) {
     if (route(a, st) !== "kb") continue;
     const g = firstGame(a, st);
@@ -448,6 +498,14 @@ function iniText(st) {
     }
     // A key remapped onto an instant action's game key (a teleport) doesn't open mouse mode.
     if (a.kb === "pass" && st.keys[a.id].some(k => k !== g)) instant.push(g);
+  }
+  // Customization's shortcuts, the same way: your key as it is, or remapped onto the game's.
+  for (const { kind, e } of customOn(st)) {
+    const g = e.game || e.keys[0];
+    for (const k of e.keys) {
+      if (k === g) (kind === "pass" ? passKeys : menuKeys).push(k);
+      else { remaps.push([k, g]); if (kind === "pass") instant.push(g); }
+    }
   }
   // The bow in keyboard mode: a side button the game doesn't use for it is sent as the
   // mouse button it does use (e.g. side 4 as right click).
@@ -462,11 +520,11 @@ function iniText(st) {
     "MouseModeOnMovePx=" + st.num.MouseModeOnMovePx, "MouseMoveSwitches=" + TG("MouseMoveSwitches").write(st.opt.MouseMoveSwitches),
     "CursorFromMiddle=" + TG("CursorFromMiddle").write(st.opt.CursorFromMiddle),
     "BumpNudgePct=" + st.num.BumpNudgePct, "BowAimsWithMouse=" + TG("BowAimsWithMouse").write(st.opt.BowAimsWithMouse), "");
-  L.push("[Keys]", "MenuKeys=" + j(uniq([...menuKeys, ...st.extraMenuKeys])), "BackKeys=Escape", "MouseAfter=" + j(mouseAfter),
-    "MenuTapMs=" + st.num.MenuTapMs, "TypeKey=" + j(st.mod.TypeKey), "PassKeys=" + uniq([...passKeys, ...st.extraPass]).join(", "),
+  L.push("[Keys]", "MenuKeys=" + j(uniq(menuKeys)), "BackKeys=Escape", "MouseAfter=" + j(mouseAfter),
+    "MenuTapMs=" + st.num.MenuTapMs, "TypeKey=" + j(st.mod.TypeKey), "PassKeys=" + uniq(passKeys).join(", "),
     "DisabledKeys=" + disabled.join(", "), "InstantKeys=" + uniq(instant).join(", "),
     "Cursor=" + j(st.mod.Cursor), "CursorMode=" + TG("CursorMode").write(st.opt.CursorMode), "Toggle=" + j(st.mod.Toggle), "Legend=" + j(st.mod.Legend), "");
-  const remapLines = [...remaps, ...st.extraRemaps].map(([f, t]) => f + "=" + t);
+  const remapLines = remaps.map(([f, t]) => f + "=" + t);
   // An empty section would bring back the mod's built-in remaps; "None=None" keeps it empty.
   L.push("[Remap]", ...(remapLines.length ? remapLines : ["None=None"]), "");
   L.push("; Keyboard or controller for each menu (for the key layout editor), and the game's",
@@ -474,10 +532,13 @@ function iniText(st) {
     "[Modes]", "ControllerMenus=" + (st.opt.ControllerMenus ? "1" : "0"), ...ACTIONS.filter(both).map(a => a.id + "=" + (st.mode[a.id] === "pad" ? "Controller" : "Keyboard")), "");
   const slotText = arr => { const a = (arr || []).slice(0, 2); while (a.length && !a[a.length - 1]) a.pop(); return a.length ? a.map(k => k || "-").join(", ") : "None"; };
   L.push("[GameKeys]", ...ACTIONS.filter(a => a.game).map(a => a.id + "=" + slotText(st.game[a.id])), "");
+  const cu = st.custom || { on: false, pass: [], menu: [] }, clean = s => String(s || "").replace(/[|\r\n]/g, " ").trim();
+  if (cu.on)
+    L.push("; Customization (for the key layout editor): name | your keys | the game's key.",
+      "[Custom]", "On=" + (cu.on ? "1" : "0"), ...CUSTOM_LISTS.flatMap(l => cu[l.kind].map(e => (l.kind === "pass" ? "Pass" : "Menu") + "=" + clean(e.name) + " | " + e.keys.join(", ") + " | " + (e.game || ""))), "");
   L.push("[Options]", ...st.optionsRaw.map(([k, v]) => {
-    if (k === "HideMouse") return k + "=" + TG("HideMouse").write(st.opt.HideMouse);
-    if (k === "BlockOtherKeys") return k + "=" + TG("BlockOtherKeys").write(st.opt.BlockOtherKeys);
-    if (k === "Legend") return k + "=" + TG("Legend").write(st.opt.Legend);
+    const o = TOGGLES.find(x => x.sec === "Options" && x.key === k);
+    if (o) return k + "=" + o.write(st.opt[k]);
     if (k === "LegendSeconds") return k + "=" + st.num.LegendSeconds;
     return k + "=" + v;
   }));
@@ -510,18 +571,16 @@ function usage(st) {
   const add = (k, row) => { if (!map.has(k)) map.set(k, []); map.get(k).push(row); };
   for (const a of ACTIONS) for (const k of st.keys[a.id]) add(k, { cat: a.cat, name: t(a.label) });
   for (const r of MOD_ROWS) for (const k of r.get(st)) add(k, { cat: "mod", name: t(r.label) });
-  for (const [f] of st.extraRemaps) add(f, { cat: "menu", name: t("Custom remap") });
+  for (const { cat, label, e } of customOn(st)) for (const k of e.keys) add(k, { cat, name: e.name || t(label) });
   return map;
 }
 const MOD_ROWS = [
   // keyOnly: the mod only notices these as key presses, so a mouse button can't be one.
-  { id: "TypeKey", label: _("Typing mode"), sub: _("for chat: every key goes to the game until you press Esc"), keyOnly: true, max: 3, get: st => st.mod.TypeKey, set: (st, v) => st.mod.TypeKey = v },
+  { id: "TypeKey", label: _("Typing mode"), sub: _("For chat: every key goes to the game until you press Esc"), keyOnly: true, max: 3, get: st => st.mod.TypeKey, set: (st, v) => st.mod.TypeKey = v },
   // The cursor key's sub follows "Cursor key toggles the cursor" (subToggle when it's on).
-  { id: "Cursor", label: _("Cursor key"), sub: _("hold it to show the mouse cursor"), subToggle: _("press it to show the mouse cursor, again to hide it"), keyOnly: true, max: 3, get: st => st.mod.Cursor, set: (st, v) => st.mod.Cursor = v },
-  { id: "Toggle", label: _("Mod on / off"), sub: _("turns the mod off until you press it again; your keys then reach the game as they are"), max: 3, get: st => st.mod.Toggle, set: (st, v) => st.mod.Toggle = v },
-  { id: "Legend", label: _("On-screen key list"), sub: _("shows or hides the list of your keys over the game"), max: 3, get: st => st.mod.Legend, set: (st, v) => st.mod.Legend = v },
-  { id: "PassKeys", label: _("Always send to the game"), sub: _("these reach the game as they are, without bringing back the cursor"), max: 8, get: st => st.extraPass, set: (st, v) => st.extraPass = v },
-  { id: "OtherMenus", label: _("Other menu shortcuts"), sub: _("sent to the game as they are; the cursor comes back so you can click"), max: 8, get: st => st.extraMenuKeys, set: (st, v) => st.extraMenuKeys = v },
+  { id: "Cursor", cursor: true, label: _("Cursor key"), sub: _("Hold it to show the mouse cursor"), subToggle: _("Press it to show the mouse cursor, again to hide it"), keyOnly: true, max: 3, get: st => st.mod.Cursor, set: (st, v) => st.mod.Cursor = v },
+  { id: "Toggle", label: _("Mod on / off"), sub: _("Turns the mod off until you press it again; your keys then reach the game as they are"), max: 3, get: st => st.mod.Toggle, set: (st, v) => st.mod.Toggle = v },
+  { id: "Legend", label: _("On-screen key list"), sub: _("Shows or hides the list of your keys over the game"), max: 3, get: st => st.mod.Legend, set: (st, v) => st.mod.Legend = v },
 ];
 
 // =================================================================== the game's own keyboard settings file
@@ -537,13 +596,12 @@ const CONTROLS_PROFILE = "/Script/SWCoreGameplay.SWEnhancedPlayerMappableKeyProf
 const GAME_ACTIONS = { melee: ["PrimaryAction"], ranged: ["RangedAttack"], heavy: ["HeavyJumpAttack"], art1: ["Artifact1"], potion: ["HealthPotion"],
   root: ["Root"], dodge: ["DirectionalDodge"], fdodge: ["ForwardDodge"], inventory: ["Inventory", "MiniInventory"], quest: ["QuestLog", "TrackQuest"],
   wheel: ["MenuWheel"], collect: ["IA_OpenUI_Collectibles"], social: ["SocialMenu"] };
-const UE_KEYS = { Space: "SpaceBar", Shift: "LeftShift", Ctrl: "LeftControl", Alt: "LeftAlt", Tab: "Tab", Escape: "Escape", Enter: "Enter",
+const UE_KEYS = { Space: "SpaceBar", LShift: "LeftShift", RShift: "RightShift", LCtrl: "LeftControl", RCtrl: "RightControl", LAlt: "LeftAlt", RAlt: "RightAlt", Tab: "Tab", Escape: "Escape", Enter: "Enter",
   Backspace: "BackSpace", CapsLock: "CapsLock", Backtick: "Tilde", Up: "Up", Down: "Down", Left: "Left", Right: "Right", "-": "Hyphen", "=": "Equals",
   "[": "LeftBracket", "]": "RightBracket", ";": "Semicolon", "'": "Apostrophe", ",": "Comma", ".": "Period", "/": "Slash", "\\": "Backslash",
   Mouse1: "LeftMouseButton", Mouse2: "RightMouseButton", Mouse3: "MiddleMouseButton", Mouse4: "ThumbMouseButton", Mouse5: "ThumbMouseButton2" };
 ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"].forEach((n, i) => { UE_KEYS[String(i)] = n; });
 const FROM_UE = Object.fromEntries(Object.entries(UE_KEYS).map(([k, v]) => [v, k]));
-Object.assign(FROM_UE, { RightShift: "Shift", RightControl: "Ctrl", RightAlt: "Alt" });
 ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"].forEach((n, i) => { FROM_UE["NumPad" + n] = String(i); });
 const ueKey = k => !k ? "None" : UE_KEYS[k] || (/^([A-Z]|F([1-9]|1[0-2]))$/.test(k) ? k : null);
 const fromUe = u => u === "None" ? null : FROM_UE[u] || (/^([A-Z]|F([1-9]|1[0-2]))$/.test(u) ? u : undefined); // undefined: a key the editor has no name for

@@ -23,11 +23,11 @@
     'Backtick 1 2 3 4 5 6 7 8 9 0 - = Backspace:2',
     'Tab:1.5 Q W E R T Y U I O P [ ] \\:1.5',
     "CapsLock:1.75 A S D F G H J K L ; ' Enter:2.25",
-    'Shift:2.25 Z X C V B N M , . / Shift:2.75',
+    'LShift:2.25 Z X C V B N M , . / RShift:2.75',
   ];
   const BOTTOM = { // followed by the arrow keys
-    win: 'Ctrl:1.5 Win:1.25 Alt:1.25 Space:5.5 Alt:1.25 Ctrl:1.25',
-    mac: 'Ctrl:1.25 Alt:1.25 Win:1.5 Space:5.25 Win:1.5 Alt:1.25',
+    win: 'LCtrl:1.5 Win:1.25 LAlt:1.25 Space:5.5 RAlt:1.25 RCtrl:1.25',
+    mac: 'LCtrl:1.25 LAlt:1.25 Win:1.5 Space:5.25 Win:1.5 RAlt:1.25',
   };
   // The mouse as if it sat right of the keyboard, for the arrow keys: [x, y, w, h] in key units.
   const MOUSE_GEO = { Mouse3: [16.85, 0, 0.5, FN_H], Mouse1: [15.6, FN_H, 1.5, 2], Mouse2: [17.1, FN_H, 1.5, 2],
@@ -47,9 +47,13 @@
     Tab: { win: 'Tab', mac: 'tab', sym: '⇥', name: 'Tab' },
     CapsLock: { win: 'Caps Lock', short: 'Caps', mac: 'caps lock', sym: '⇪', name: 'Caps Lock' },
     Enter: { win: 'Enter', mac: 'return', sym: '⏎', name: 'Enter', macName: 'Return' },
-    Shift: { win: 'Shift', mac: 'shift', sym: '⇧', name: 'Shift', macName: '⇧ Shift' },
-    Ctrl: { win: 'Ctrl', mac: 'control', sym: '⌃', name: 'Ctrl', macName: '⌃ Control' },
-    Alt: { win: 'Alt', mac: 'option', sym: '⌥', name: 'Alt', macName: '⌥ Option' },
+    // the left and right Shift, Ctrl and Alt are different keys (a plain Shift in a file is the left one)
+    LShift: { win: 'Shift', mac: 'shift', sym: '⇧', name: 'Left Shift', macName: '⇧ Left Shift' },
+    RShift: { win: 'Shift', mac: 'shift', sym: '⇧', name: 'Right Shift', macName: '⇧ Right Shift' },
+    LCtrl: { win: 'Ctrl', mac: 'control', sym: '⌃', name: 'Left Ctrl', macName: '⌃ Left Control' },
+    RCtrl: { win: 'Ctrl', mac: 'control', sym: '⌃', name: 'Right Ctrl', macName: '⌃ Right Control' },
+    LAlt: { win: 'Alt', mac: 'option', sym: '⌥', name: 'Left Alt', macName: '⌥ Left Option' },
+    RAlt: { win: 'Alt', mac: 'option', sym: '⌥', name: 'Right Alt', macName: '⌥ Right Option' },
     Win: { win: WIN_LOGO, mac: 'command', sym: '⌘', name: 'Windows key', macName: '⌘ Command' },
     Space: { win: '', mac: '', name: 'Space' },
     Left: { win: '←', mac: '◀︎', name: 'Left arrow' },
@@ -141,7 +145,7 @@
     const st = baseState(yours.base);
     for (const o of Object.values(OWNERS)) {
       const v = (o.a ? yours.keys : yours.mod)[o.id];
-      if (Array.isArray(v)) setKeys(st, o, v.map(String).filter(k => BINDABLE.has(k)).slice(0, 3));
+      if (Array.isArray(v)) setKeys(st, o, v.map(k => K.normKey(String(k))).filter(k => k && BINDABLE.has(k)).slice(0, 3)); // a plain Shift saved before is the left one
     }
     return st;
   }
@@ -172,7 +176,7 @@
   const reduceMotion = mq('(prefers-reduced-motion: reduce)'), touchFirst = mq('(hover: none)');
   const ABOUT = {
     d: 'The game’s own keys, played as a controller. Only the menu wheel moves, from S to Tab.',
-    r: 'The author’s layout. Dodge with right click or Shift. The bow is on side button 4, or on C to shoot the way you face.',
+    r: 'The author’s layout. Dodge with right click or left Shift. The bow is on side button 4, or on C to shoot the way you face.',
     y: base => `Your layout, made from ${FROM[base]}. Export it below to play with it in the game.`,
   };
   const seg = (key, label, opts) => `
@@ -202,7 +206,7 @@
     </div>
     <div class="km-export">
       <button type="button" class="km-exp">${DL_ICON}<span>Export layout</span></button>
-      <p class="km-exp-note"><span>Windows: the setup’s Load layout file…</span> · <span>Mac: the app’s layout menu → Import a file…</span> · <span>Linux / Steam Deck: put it in Dungeons/Binaries/Win64.</span></p>
+      <p class="km-exp-note"><span>In wasdmod: Layout → Import a file…,</span> <span>then Install/Apply Layout.</span> · <span>By hand: put it in Dungeons/Binaries/Win64.</span></p>
     </div>
     <div class="km-list">
       <button type="button" class="km-more" aria-expanded="false">All controls<span class="km-chev" aria-hidden="true"></span></button>
@@ -296,7 +300,7 @@
     if (!rows.length) return { name, text: 'not used', note: !MOUSE[id] && state.opt.BlockOtherKeys ? 'Blocked while you play, so the game can’t flip into keyboard mode' : '' };
     const notes = rows.map(r => noteFor(r.name)).filter(Boolean);
     if (mac && /^F\d/.test(id)) notes.push(`On a Mac keyboard: fn + ${id}, unless the F-keys are set as standard function keys`);
-    if (mac && id === 'Alt') notes.push('The mod’s Alt key is Option on a Mac');
+    if (mac && (id === 'LAlt' || id === 'RAlt')) notes.push('The mod’s Alt keys are the Option keys on a Mac');
     if (el.classList.contains('is-fixed')) notes.push('Always on Esc; you can add more keys for it in the list');
     return { name, cat: rows[0].cat, text: rows.map(r => r.name).join(' · '), note: notes.join(' · ') };
   }

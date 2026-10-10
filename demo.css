@@ -22,7 +22,7 @@
   border-radius: var(--radius-l, 28px);
   border: 1px solid var(--hairline, rgba(255, 255, 255, .1));
   background: var(--surface, #101012);
-  box-shadow: 0 40px 100px -40px rgba(255, 106, 61, .22), 0 24px 60px -30px rgba(162, 89, 255, .25);
+  box-shadow: 0 40px 100px -40px rgba(255, 106, 61, .22), 0 24px 60px -30px rgba(30, 214, 230, .22);
 }
 
 /* Game */
@@ -265,7 +265,7 @@
   height: 2px;
   margin-top: 22px;
   border-radius: 2px;
-  background: var(--grad, linear-gradient(90deg, #ffb340, #ff6a3d 45%, #ff3d77 75%, #a259ff));
+  background: var(--grad, linear-gradient(90deg, #ffb340, #ff7a3d 50%, #ff4d6d));
   opacity: .45;
   transition: opacity .15s, box-shadow .15s;
 }
@@ -410,6 +410,23 @@ html.motion .try .demo-frame { opacity: 1; transform: none; transition: none; } 
 .motion .try.tp-pin .try-pin { height: 350vh; height: 350svh; }
 .motion .try.tp-pin .try-stage { position: sticky; top: 0; display: flex; flex-direction: column; justify-content: center; height: 100vh; height: 100svh; padding-top: var(--nav-h); }
 .motion .try.tp-pin .demo-wrap { margin: 0 auto; }
+/* the stage holds still, so three things show the scroll: lights in the background drift past it, a line
+   beside the moves fills as you go (site: --tp, 0 to 1, set by demo.js), and the list drifts a little */
+.motion .try.tp-pin .try-pin { position: relative; }
+.motion .try.tp-pin .try-pin::before {
+  content: ""; position: absolute; z-index: -1; inset: 0; pointer-events: none; background-repeat: no-repeat;
+  background:
+    radial-gradient(ellipse max(46vw, 320px) 44vh at 98% 12%, rgba(255, 122, 61, .17), transparent 72%),
+    radial-gradient(ellipse max(46vw, 320px) 44vh at 2% 31%, rgba(255, 196, 64, .17), transparent 72%),
+    radial-gradient(ellipse max(46vw, 320px) 44vh at 98% 50%, rgba(255, 122, 61, .17), transparent 72%),
+    radial-gradient(ellipse max(46vw, 320px) 44vh at 2% 69%, rgba(255, 196, 64, .17), transparent 72%),
+    radial-gradient(ellipse max(46vw, 320px) 44vh at 98% 88%, rgba(255, 122, 61, .17), transparent 72%);
+}
+.motion .try.tp-pin .try-rail { transform: translateY(calc((.5 - var(--tp, .5)) * 44px)); }
+.motion .try.tp-pin .tr-list { position: relative; }
+.motion .try.tp-pin .tr-list::before, .motion .try.tp-pin .tr-list::after { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 3px; pointer-events: none; }
+.motion .try.tp-pin .tr-list::before { background: rgba(255, 255, 255, .1); }
+.motion .try.tp-pin .tr-list::after { background: linear-gradient(#ffd93b, #ffab2e 50%, #ff7a3d); transform-origin: 50% 0; transform: scaleY(var(--tp, 0)); opacity: .6; }
 
 /* the move list: a status line, the six moves, a card for the highlighted one */
 .try-rail { min-width: 0; text-align: left; }
@@ -476,6 +493,9 @@ html.motion .try .demo-frame { opacity: 1; transform: none; transition: none; } 
   .try-rail:not(.is-static) .tr-list { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin-top: 10px; padding: 3px; border-radius: 14px; background: rgba(255, 255, 255, .06); }
   .try-rail:not(.is-static) .tr-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 0 6px; border-radius: 11px; font-size: 12px; }
   .try-rail:not(.is-static) .tr-item::before { display: none; }
+  .motion .try.tp-pin .try-rail:not(.is-static) .tr-list::before, .motion .try.tp-pin .try-rail:not(.is-static) .tr-list::after { left: 10px; right: 10px; top: auto; bottom: -7px; width: auto; height: 3px; }
+  .motion .try.tp-pin .try-rail:not(.is-static) .tr-list::after { background: linear-gradient(90deg, #ffd93b, #ffab2e 50%, #ff7a3d); transform-origin: 0 50%; transform: scaleX(var(--tp, 0)); }
+  .motion .try.tp-pin .try-rail { transform: translateY(calc((.5 - var(--tp, .5)) * 20px)); }
   .try-rail:not(.is-static) .tr-item.on { background: rgba(255, 255, 255, .14); }
   .tr-card, .tr-done { min-height: 132px; margin-top: 10px; padding: 12px 14px; }
   .tr-body { grid-template-columns: auto 1fr; align-items: center; gap: 14px; }

@@ -186,7 +186,7 @@
     reveals.forEach(function (el) {
       var sibs = $$(':scope > .reveal', el.parentElement);
       var i = sibs.indexOf(el);
-      if (i > 0) el.style.setProperty('--rd', Math.min(i, 5) * 0.09 + 's');
+      if (i > 0) el.style.setProperty('--rd', Math.min(i, 5) * 0.07 + 's');
     });
     if (!motion) return;
     revealNow();   // anything already on screen shows at once, so the first paint is never blank
@@ -393,6 +393,27 @@
         } else if (n.nodeType === 1) split(n);
       });
     })(p);
+    // the highlighted phrase: each word gets its own slice of one warm-to-cyan sweep (by letters, so it's even)
+    $$('.em', p).forEach(function (em) {
+      var STOPS = [[0, 255, 138, 20], [.14, 255, 154, 28], [.29, 255, 217, 59], [.425, 30, 214, 230], [1, 30, 214, 230]];   // cyan from "controller" on
+      function at(t) {
+        for (var k = 1; k < STOPS.length; k++) if (t <= STOPS[k][0]) {
+          var a = STOPS[k - 1], b = STOPS[k], f = (t - a[0]) / (b[0] - a[0] || 1);
+          return 'rgb(' + [1, 2, 3].map(function (c) { return Math.round(a[c] + (b[c] - a[c]) * f); }).join(',') + ')';
+        }
+        return 'rgb(30,214,230)';
+      }
+      var words = $$('.w', em), len = words.reduce(function (s, w) { return s + w.textContent.length; }, 0) || 1, done = 0;
+      words.forEach(function (w) {
+        w.style.setProperty('--g0', at(done / len));
+        done += w.textContent.length;
+        w.style.setProperty('--g1', at(done / len));
+      });
+      em.classList.add('is-flow');
+    });
+    // each word starts a little sooner after the last, so the sweep is quick and lands softly
+    var ws = $$('.w', p), n = ws.length, total = Math.min(1.5, n * 0.034);
+    ws.forEach(function (w, j) { w.style.setProperty('--wd', (total * (1 - Math.pow(1 - j / Math.max(1, n - 1), 1.6))).toFixed(3) + 's'); });
     if (!motion) { p.classList.add('is-lit'); return; }
     onView([p], function (el, on, io) {
       if (!on) return;
@@ -411,163 +432,6 @@
       io.disconnect();
       f.classList.add('is-in');
     }, { threshold: 0.12 });
-  });
-
-  /* ======================================================================
-     Hero show: keys and stick appear together when they come into view,
-     play one short demo (W, then once around the circle), spring back,
-     then it's the visitor's turn. Real W A S D keys (or taps on the keycaps)
-     push the stick at any time; trying it early stops the demo.
-     ====================================================================== */
-  run('hero show', function () {
-    var show = $('.show'), stage = $('.show-stage'), stick = $('.show .stick');
-    if (!show || !stage || !stick) return;
-    var pin = $('.show-pin') || show;     // pinned (sticky) on most screens; plain flow otherwise
-    var keys = {}, promptKeys = {};
-    $$('.key', show).forEach(function (k) { keys[k.getAttribute('data-key')] = k; });
-    $$('.sp-keys kbd', show).forEach(function (k) { promptKeys[k.getAttribute('data-k')] = k; });
-
-    var state = 'idle';                 // idle → shown → demo → live
-    var autoK = '', userK = {}, sig = null, visible = false;
-    var cur = { x: 0, y: 0 }, vel = { x: 0, y: 0 }, tgt = { x: 0, y: 0 }, raf = 0, last = 0, ang = 0;
-
-    function render() {
-      var mag = Math.min(1, Math.sqrt(cur.x * cur.x + cur.y * cur.y));
-      if (mag > .04) ang = Math.atan2(cur.x, -cur.y) * 180 / Math.PI;
-      var st = stick.style;
-      st.setProperty('--px', cur.x.toFixed(4));
-      st.setProperty('--py', cur.y.toFixed(4));
-      st.setProperty('--mag', mag.toFixed(3));
-      st.setProperty('--ang', ang.toFixed(1) + 'deg');
-    }
-    function tick(t) {
-      var dt = Math.min(.034, Math.max(0, (t - last) / 1000));
-      last = t;
-      if (!motion) { cur.x = tgt.x; cur.y = tgt.y; vel.x = vel.y = 0; }
-      else {
-        // a spring: snappy when pushed, a little bounce when let go
-        var K = 300, C = 19, h = dt / 2;
-        for (var i = 0; i < 2; i++) {
-          vel.x += (K * (tgt.x - cur.x) - C * vel.x) * h;
-          vel.y += (K * (tgt.y - cur.y) - C * vel.y) * h;
-          cur.x += vel.x * h;
-          cur.y += vel.y * h;
-        }
-      }
-      var done = Math.abs(tgt.x - cur.x) < .001 && Math.abs(tgt.y - cur.y) < .001 && Math.abs(vel.x) < .01 && Math.abs(vel.y) < .01;
-      if (done) { cur.x = tgt.x; cur.y = tgt.y; vel.x = vel.y = 0; raf = 0; }
-      else raf = requestAnimationFrame(tick);
-      render();
-    }
-    function apply() {
-      var on = {}, i;
-      for (i = 0; i < autoK.length; i++) on[autoK.charAt(i)] = true;
-      for (i in userK) if (userK[i]) on[i] = true;
-      var s = ['w', 'a', 's', 'd'].map(function (c) { return (on[c] ? 1 : 0) + '' + (userK[c] ? 1 : 0); }).join('');
-      if (s === sig) return;
-      sig = s;
-      ['w', 'a', 's', 'd'].forEach(function (c) {
-        if (keys[c]) keys[c].classList.toggle('is-down', !!on[c]);
-        if (promptKeys[c]) promptKeys[c].classList.toggle('on', !!userK[c]);
-      });
-      var x = (on.d ? 1 : 0) - (on.a ? 1 : 0), y = (on.s ? 1 : 0) - (on.w ? 1 : 0);
-      var m = Math.sqrt(x * x + y * y) || 1;
-      tgt.x = x / m;
-      tgt.y = y / m;
-      if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); }
-    }
-
-    // the one-time demo: W, let go, then once around the circle
-    var STEPS = [[0, 'w'], [560, ''], [840, 'w'], [1100, 'wd'], [1360, 'd'], [1620, 'sd'], [1880, 's'],
-      [2140, 'sa'], [2400, 'a'], [2660, 'wa'], [2920, 'w'], [3180, '']];
-    var PROMPT_AT = 3650, demoT = 0, demoLast = 0, demoRaf = 0, startTimer = 0, revealedAt = 0;
-    function demoTick(t) {
-      var dt = Math.min(50, Math.max(0, t - demoLast));
-      demoLast = t;
-      if (!visible) { demoRaf = 0; return; }   // off screen it waits, with no frames; the observer below picks it up again
-      demoT += dt;
-      var k = '';
-      for (var i = 0; i < STEPS.length; i++) if (demoT >= STEPS[i][0]) k = STEPS[i][1];
-      if (k !== autoK) { autoK = k; apply(); }
-      if (demoT >= PROMPT_AT) { demoRaf = 0; yourTurn(); return; }
-      demoRaf = requestAnimationFrame(demoTick);
-    }
-    function startDemo() {
-      startTimer = 0;
-      if (state !== 'shown' || !visible) return;   // scrolled away before it began: wait for the next time
-      state = 'demo';
-      demoT = 0;
-      demoLast = performance.now();
-      demoRaf = requestAnimationFrame(demoTick);
-    }
-    function reveal() {
-      if (show.classList.contains('is-in')) return;
-      show.classList.add('is-in');
-      revealedAt = performance.now();
-      if (state === 'idle') state = 'shown';
-    }
-    // the demo starts once the block fills the screen (pinned), after the keys have arrived
-    function maybeStart() {
-      if (state !== 'shown' || startTimer) return;
-      startTimer = setTimeout(startDemo, Math.max(150, 800 - (performance.now() - revealedAt)));
-    }
-    function yourTurn() {
-      if (demoRaf) { cancelAnimationFrame(demoRaf); demoRaf = 0; }
-      if (startTimer) { clearTimeout(startTimer); startTimer = 0; }
-      if (autoK) { autoK = ''; apply(); }
-      if (!show.classList.contains('is-in')) show.classList.add('is-in');
-      state = 'live';
-      show.classList.add('is-prompt');
-    }
-    function touched() {
-      if (state !== 'live') yourTurn();
-      show.classList.add('is-touched');
-    }
-
-    var CODES = { KeyW: 'w', KeyA: 'a', KeyS: 's', KeyD: 'd' };
-    doc.addEventListener('keydown', function (e) {
-      var c = CODES[e.code];
-      if (!c || e.ctrlKey || e.metaKey || e.altKey || editable(e.target) || !visible) return;
-      touched();
-      if (!userK[c]) { userK[c] = true; apply(); }
-    });
-    doc.addEventListener('keyup', function (e) {
-      var c = CODES[e.code];
-      if (c && userK[c]) { userK[c] = false; apply(); }
-    });
-    window.addEventListener('blur', function () { userK = {}; apply(); });
-    Object.keys(keys).forEach(function (c) {
-      var el = keys[c];
-      function up() { if (userK[c]) { userK[c] = false; apply(); } }
-      el.addEventListener('pointerdown', function (e) {
-        touched();
-        userK[c] = true;
-        apply();
-        try { el.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-      });
-      el.addEventListener('pointerup', up);
-      el.addEventListener('pointercancel', up);
-      el.addEventListener('lostpointercapture', up);
-    });
-
-    render();
-    if (!motion) { state = 'live'; show.classList.add('is-in', 'is-prompt'); }
-    if (hasIO) {
-      new IntersectionObserver(function (es) {
-        es.forEach(function (e) {
-          // how much of the screen it fills (the pinned block is one screen tall)
-          var fill = e.isIntersecting ? Math.max(e.intersectionRatio, e.intersectionRect.height / (window.innerHeight || 1)) : 0;
-          visible = fill >= .3;
-          if (visible && state === 'demo' && !demoRaf) { demoLast = performance.now(); demoRaf = requestAnimationFrame(demoTick); }
-          if (state === 'idle' && fill >= .35) reveal();
-          if (state === 'shown') {
-            if (fill >= .85) maybeStart();
-            else if (startTimer && fill < .5) { clearTimeout(startTimer); startTimer = 0; }
-          }
-        });
-      }, { threshold: [0, .2, .3, .35, .5, .7, .85, .95, 1] }).observe(pin);
-    } else { visible = true; reveal(); maybeStart(); }
-    api.show = { state: function () { return state; } };
   });
 
   /* ---------- highlights: a carousel (swipe or scroll sideways, arrows, dots) ---------- */
@@ -637,10 +501,10 @@
     onView(cards, function (el, on) { el.classList.toggle('is-inview', on); }, { threshold: 0.2 });
   });
 
-  /* ---------- the other looping animations (the keyboard's float and glow, the pulsing dots, the
+  /* ---------- the other looping animations (the pulsing dots, the
      final icon) rest while their section is off screen: .is-away, see style.css ---------- */
   run('loops', function () {
-    onView([$('#show'), $('#try'), $('.final')], function (el, on) { el.classList.toggle('is-away', !on); });
+    onView([$('#try'), $('.final')], function (el, on) { el.classList.toggle('is-away', !on); });
   });
 
   /* ---------- editor: a live copy of the key layout editor, toured as you scroll ----------

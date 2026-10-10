@@ -1,11 +1,13 @@
 // Makes editor-snap.html (and, with --webp, editor.webp): the key layout editor for the
-// "Key layout editor" section, frozen from the real one, wasdmod's configurator.html.
+// "Key layout editor" section, frozen from the real one: wasdmod's built Keybinder.html
+// (configurator.html, its source, works too).
 //
-//   node editor-snap.mjs [path/to/configurator.html] [--webp]
+//   node editor-snap.mjs [path/to/Keybinder.html] [--webp]
 //
-// It opens the editor in Chrome (headless) as the Windows setup's editor window would show it:
-// window.wasdmodHost says app "win", English, the Recommended layout, and a game whose own
-// keyboard settings already match it, so the checklist says "All set". Then it copies the built
+// It opens the editor in Chrome (headless) as the Windows app's window shows it:
+// window.wasdmodHost says app "win", English, the mod installed with the Recommended layout, and
+// a game whose own keyboard settings already match it, so the checklist is all set (and stays
+// folded, as it does in the app). Then it copies the built
 // page without scripts, handlers, titles or aria, keeps the editor's CSS rules that match the copy
 // (made to work in a shadow root), and adds two templates made by using the editor itself: a key
 // bound twice (the red notice) and three of the game's keys still to change (the checklist).
@@ -21,13 +23,13 @@ import { gzipSync } from "node:zlib";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
-const EDITOR = resolve(args.find(a => !a.startsWith("--")) || join(here, "../wasdmod/configurator.html"));
+const EDITOR = resolve(args.find(a => !a.startsWith("--")) || join(here, "../wasdmod/Keybinder.html"));
 const WEBP = args.includes("--webp");
 const CHROME = process.env.CHROME || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const W = 1280, H = 960;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// ---- the Windows setup's window.wasdmodHost, stubbed
+// ---- the Windows app's window.wasdmodHost, stubbed: the mod installed, the Recommended layout in the game
 const STUB = `window.wasdmodHost = (() => {
   const store = { "d2kb-current": "author", "d2kb-lang": "en" };
   const enc = s => { const b = new TextEncoder().encode(s), o = new Uint8Array(b.length + 5); new DataView(o.buffer).setInt32(0, b.length + 1, true); o.set(b, 4); return o; };
@@ -35,7 +37,7 @@ const STUB = `window.wasdmodHost = (() => {
   const cat = parts => { const o = new Uint8Array(parts.reduce((a, x) => a + x.length, 0)); let i = 0; for (const x of parts) { o.set(x, i); i += x.length; } return o; };
   const b64 = u => { let s = ""; for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); };
   // the game's settings file: an empty keyboard profile, then the keys the checklist asks for,
-  // written the way the editor's "Apply to the game's controls" does
+  // written the way the editor's "Change them for me" does
   function controls() {
     const K = globalThis.Keybinder;
     const base = cat([new TextEncoder().encode("GVAS"), new Uint8Array(8), i32(1), enc("/Script/SWCoreGameplay.SWEnhancedPlayerMappableKeyProfile"),
@@ -44,21 +46,29 @@ const STUB = `window.wasdmodHost = (() => {
     for (const r of K.recommendations(st)) if (K.GAME_ACTIONS[r.a.id]) (want[r.a.id] = want[r.a.id] || (st.game[r.a.id] || []).slice(0, 2))[r.slot] = r.want;
     return b64(K.writeControls(K.parseControls(base), want));
   }
-  return { store, lang: "en", app: "win", game: null, set(k, v) { store[k] = String(v); }, async gameControls() { return controls(); },
-    async writeGameControls() { return ""; }, setLang() {}, async save(name) { return name; } };
+  let game = null; // the layout the game uses: Recommended (the editor's own text for it, once the editor is there)
+  const never = () => new Promise(() => {});
+  return { store, lang: "en", app: "win", version: "1.5.1", updates: "github",
+    get game() { return game || (globalThis.Keybinder ? (game = { file: "author.txt", text: globalThis.Keybinder.AUTHOR_INI }) : null); }, set game(v) { game = v; },
+    status: { text: "Installed and up to date. Start (or restart) the game to use it.", recording: false, found: true, state: "current", busy: false },
+    set(k, v) { store[k] = String(v); }, async gameControls() { return controls(); },
+    waitGameControls(have) { return have === "v1" ? never() : Promise.resolve("v1"); }, // the game never saves its settings here
+    async writeGameControls() { return ""; }, setLang() {}, async save(name) { return name; },
+    async modAction() {}, async chooseGameFolder() { return "cancelled"; }, async showGameFolder() {}, async findGameAutomatically() {},
+    async recordLogs() { return "off"; }, async exportFile() { return "cancelled"; }, async checkForUpdates() { return ""; } };
 })();`;
 
 // ---- runs in the editor's page
 function inPage() {
   const KEEP = new Set(["class", "id", "style", "data-k", "data-kind", "data-cat", "data-action", "data-slot", "data-d", "disabled", "checked", "selected",
-    "type", "value", "label", "viewBox", "width", "height", "fill", "d"]);
+    "type", "value", "label", "viewBox", "width", "height", "fill", "d", "cx", "cy", "r", "rx", "ry", "x", "y", "transform", "text-anchor", "dominant-baseline", "aria-expanded"]);
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (test, ms = 5000) => { const t0 = Date.now(); while (!test()) { if (Date.now() - t0 > ms) throw new Error("timed out"); await sleep(25); } };
   const press = code => window.dispatchEvent(new KeyboardEvent("keydown", { code, key: code.replace(/^(Key|Digit)/, "").toLowerCase(), bubbles: true }));
   // a copy as the website shows it: no scripts, handlers, hidden parts, titles or aria; the
   // map keys keep what they do (the editor's describe() text) as data-d
   function clean(node, cutY) {
-    if (cutY != null) for (const e of node.querySelectorAll("main > section, #sec-act > *")) if (e.getBoundingClientRect().top > cutY) e.setAttribute("data-cut", "");
+    if (cutY != null) for (const e of node.querySelectorAll("main > section, #sec-act > *, #troubleCard, #appFoot")) if (e.getBoundingClientRect().top > cutY) e.setAttribute("data-cut", "");
     const c = node.cloneNode(true);
     for (const e of [...c.querySelectorAll("script, [hidden], [data-cut]")]) e.remove();
     if (cutY != null) for (const e of node.querySelectorAll("[data-cut]")) e.removeAttribute("data-cut");
@@ -77,7 +87,7 @@ function inPage() {
   function css(test) {
     const sheet = [...document.styleSheets].find(s => s.ownerNode && s.ownerNode.tagName === "STYLE");
     const dyn = /\.(conflict|listening|stray|wave|fresh|show|below|ktip|toast)\b/; // classes the website's tour puts on
-    const out = [], frames = [];
+    const out = [], frames = [], roots = [];
     const split = s => { const parts = []; let depth = 0, cur = ""; for (const ch of s) { if (ch === "(") depth++; if (ch === ")") depth--; if (ch === "," && !depth) { parts.push(cur.trim()); cur = ""; } else cur += ch; } parts.push(cur.trim()); return parts; };
     const rewrite = s => s.replace(/:root/g, ".ed-html").replace(/(^|[\s,>+~(])body\b/g, "$1.ed-body");
     const relax = s => s.replace(/::?(before|after|marker|placeholder|-webkit-[\w-]+)/g, "").replace(/:(hover|active|focus-visible|focus-within|focus)\b/g, "").trim();
@@ -85,7 +95,7 @@ function inPage() {
     function walk(rules, into) {
       for (const r of rules) {
         if (r instanceof CSSStyleRule) {
-          if (r.selectorText === ":root") continue; // the light theme's colours: the app's own replace them all
+          if (r.selectorText === ":root") { roots.push(r); continue; } // the light theme's colours: the app's own replace them (see below)
           const parts = split(rewrite(r.selectorText)).filter(p => !/::?(selection|-webkit-scrollbar)|:lang\(/.test(p)).filter(p => dyn.test(p) || matches(p));
           if (parts.length) into.push(parts.join(", ") + " { " + r.style.cssText + " }");
         } else if (r instanceof CSSMediaRule) {
@@ -101,6 +111,12 @@ function inPage() {
     }
     walk(sheet.cssRules, out);
     const text = out.join("\n");
+    // from :root, only what the kept rules use and the app's look doesn't set itself (the chevron's mask)
+    const own = [];
+    for (const r of roots) for (const name of r.style) {
+      if (name.startsWith("--") && text.includes("var(" + name + ")") && !new RegExp("[{;\\s]" + name + "\\s*:").test(text)) own.push(name + ": " + r.style.getPropertyValue(name).trim() + ";");
+    }
+    if (own.length) out.unshift(".ed-html { " + own.join(" ") + " }");
     for (const f of frames) if (new RegExp("\\b" + f.name + "\\b").test(text)) out.push(f.cssText.replace(/\s+/g, " "));
     return out.join("\n");
   }
@@ -193,8 +209,8 @@ style += `
 .app .ktip { max-width: 280px; }`;
 
 const html = `<!-- The wasdmod key layout editor (configurator.html in wasdmod), frozen for the website's
-     editor tour: its dark Windows look at ${W} x ${H}, in English, with the Recommended layout and the
-     game's keys matching ("All set"). Built from the running editor; no scripts. The templates
+     editor tour: as the Windows app shows it at ${W} x ${H}, in English, with the mod installed, the
+     Recommended layout and the game's keys matching. Built from the running editor; no scripts. The templates
      are the same editor after two changes: a key bound twice, and three of the game's keys to change.
      Made by editor-snap.mjs; make it again whenever the editor's look changes (see README.md). -->
 <meta name="robots" content="noindex">

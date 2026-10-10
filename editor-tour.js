@@ -1,13 +1,15 @@
 /* wasdmod site: the key layout editor, toured as you scroll (section 5).
-   editor-snap.html is a frozen copy of the real editor (wasdmod's configurator.html in its dark
-   Windows look, with the Recommended layout). It's fetched once the section is near, put in a
+   editor-snap.html is a frozen copy of the real editor (wasdmod's Keybinder.html as the Windows
+   app shows it, with the Recommended layout installed). It's fetched once the section is near, put in a
    shadow root so its styles stay its own, laid out at the editor's own 1280 x 960 and scaled to
    fit, so every key, row and chip is a real element.
    While the section is pinned, the scroll position only picks the step. Each step then plays on
    a timer: the camera moves to that part of the editor (one CSS transform), a spotlight dims the
    rest, a caption slides in, and a short animation runs on the editor's own elements. A step
-   starts once the scroll rests on it for 150 ms, so scrolling fast skips steps instead of
-   queueing them. Scrolling back plays the earlier step again; the dots jump to a step.
+   starts the moment the scroll lands on it, without waiting for the scroll to stop: it cuts the
+   step that was playing short and the camera carries on from wherever it was. A fast fling starts
+   at most one step every 140 ms and ends on the right one. Scrolling back plays the earlier step
+   again; the dots jump to a step.
    Reduced motion (or a short screen): no pin, no animation, the editor as it is and the steps
    as a list. Without JavaScript: a picture (editor.webp) and the list. */
 (function () {
@@ -34,7 +36,7 @@
   var W = 1280, H = 960;
 
   /* ---------- state ---------- */
-  var sr = null, app = null, cam = null, body = null, spot = null, menu = null, keycap = null, game = null, ptr = null, host = null;
+  var sr = null, app = null, cam = null, body = null, spot = null, menu = null, keycap = null, ptr = null, host = null;
   var pristine = null;               // fresh copies of the parts the steps change
   var k = 0.5;                       // the copy's scale on screen
   var camNow = { z: 1, tx: 0, ty: 0 }, frameNow = null;
@@ -74,14 +76,14 @@
   /* ---------- the copy of the editor ---------- */
   // The tour's own bits inside the shadow root: camera, spotlight, the layout menu, a keycap.
   var CSS = [
-    '.ed-html { --cam: cubic-bezier(.6, 0, .2, 1); }',
+    '.ed-html { --cam: cubic-bezier(.25, .6, .2, 1); }',
     '.ed-html :is(#conflicts, #mismatch, .grid section.card) { animation: none; }',
-    '.ed-cam { position: absolute; left: 0; top: 0; width: 1280px; height: 960px; transform-origin: 0 0; transition: transform .8s var(--cam); }',
+    '.ed-cam { position: absolute; left: 0; top: 0; width: 1280px; height: 960px; transform-origin: 0 0; transition: transform .75s var(--cam); }',
     '.ed-cam > .ed-body { min-height: 960px; }',
     '.ed-now .ed-cam, .ed-now .ed-spot { transition: none !important; }',
     '.ed-spot { position: absolute; z-index: 40; left: 0; top: 0; width: 0; height: 0; border-radius: 12px; pointer-events: none; opacity: 0;',
     '  box-shadow: 0 0 0 2px rgba(255, 150, 80, .95), 0 0 30px 6px rgba(255, 106, 61, .38), 0 0 0 4000px rgba(0, 0, 0, .56);',
-    '  transition: opacity .5s, left .8s var(--cam), top .8s var(--cam), width .8s var(--cam), height .8s var(--cam); will-change: transform; }',
+    '  transition: opacity .5s, left .75s var(--cam), top .75s var(--cam), width .75s var(--cam), height .75s var(--cam); will-change: transform; }',
     '.ed-spot.on { opacity: 1; }',
     '.ed-html .ktip { z-index: 50; }',
     '.ed-html .ed-body { pointer-events: none; }',
@@ -107,47 +109,23 @@
     '.ed-key.on { animation: ed-key 1.15s var(--ease) both; }',
     '@keyframes ed-key { 0% { opacity: 0; transform: translateY(10px) scale(.7); } 16% { opacity: 1; transform: none; } 30% { transform: translateY(3px) scale(.93); }',
     '  44% { transform: none; } 78% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-12px) scale(.96); } }',
-    /* chips that come and go, clashes that shake, buttons that press */
-    '.ed-in { animation: ed-in .5s cubic-bezier(.3, 1.45, .5, 1) both; }',
+    /* chips that come and go, buttons that press */
+    '.ed-in { animation: ed-in .5s cubic-bezier(.3, 1.2, .5, 1) both; }',
     '@keyframes ed-in { from { opacity: 0; transform: perspective(240px) rotateX(-80deg) scale(.9); } }',
-    '.ed-shake { animation: ed-shake .55s ease-in-out; }',
-    '@keyframes ed-shake { 0%, 100% { translate: 0; } 15% { translate: -4px 0; } 35% { translate: 4px 0; } 55% { translate: -3px 0; } 75% { translate: 2px 0; } }',
     '.ed-press { transform: scale(.95) !important; filter: brightness(1.25); transition: transform .1s, filter .1s !important; }',
     '.ed-html .add.ed-wait { min-width: 104px; }',
-    /* the checklist ticking off by itself (step 4) */
-    '.ed-html ul.recs li { overflow: hidden; }',
-    '.ed-html ul.recs li.ed-done { border-color: rgba(48, 209, 88, .45); background: rgba(48, 209, 88, .1); transition: background-color .25s, border-color .25s; }',
-    '.ed-html ul.recs li.ed-done button { visibility: hidden; }',
-    '.ed-html ul.recs li .ed-tick { position: absolute; right: 14px; top: 50%; width: 20px; height: 20px; margin-top: -10px; border-radius: 50%; background: var(--ok);',
-    '  box-shadow: 0 0 12px rgba(48, 209, 88, .7); animation: ed-in .4s cubic-bezier(.3, 1.6, .5, 1) both; }',
-    '.ed-html ul.recs li .ed-tick::after { content: ""; position: absolute; left: 6px; top: 5px; width: 8px; height: 4px; border: solid #0b0b0d; border-width: 0 0 2px 2px; transform: rotate(-45deg); }',
-    '.ed-html ul.recs li { position: relative; }',
-    '.ed-html .allset.ed-in { animation-duration: .6s; }',
-    /* the game's own keyboard settings, where a key is changed in step 4: a panel over the editor */
-    '.ed-game { position: absolute; z-index: 50; left: 0; top: 0; width: 290px; padding: 12px 14px 14px; border-radius: 10px; pointer-events: none;',
-    '  background: rgba(22, 22, 26, .97); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), 0 18px 44px rgba(0, 0, 0, .6), 0 2px 8px rgba(0, 0, 0, .35);',
-    '  font: 400 14px/1.3 var(--body); color: var(--fg); opacity: 0; transform: translateY(8px) scale(.97); transition: opacity .25s, transform .3s var(--ease); }',
-    '.ed-game.on { opacity: 1; transform: none; }',
-    '.ed-game p { margin: 0; }',
-    '.ed-game .gh { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }',
-    '.ed-game .gp { margin: 3px 0 12px; font-size: 12px; color: var(--soft); }',
-    '.ed-game .gr { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border-radius: 6px; background: rgba(255, 255, 255, .05); }',
-    '.ed-game .gk { min-width: 58px; padding: 6px 10px; border-radius: 6px; text-align: center; font-weight: 600; background: rgba(255, 255, 255, .09); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16); }',
-    /* the line at the top (the "in game" keys follow the game's settings), lit at the end of step 4 */
-    '.ed-html .sync-note { transition: color .5s; }',
-    '.ed-html .sync-note.ed-lit { color: var(--fg); }',
     /* the keyboard map: a key you press, the colour being shown */
     '.ed-html .k.ed-down { z-index: 3; filter: brightness(1.6); transform: translateY(1px) scale(.94); }',
     '.ed-html .k.off.ed-down { opacity: 1; color: var(--fg); }',
     '.ed-html .legend-row span.ed-on { color: var(--fg); background: rgba(255, 255, 255, .12); }',
-    '@media (prefers-reduced-motion: reduce) { .ed-cam, .ed-spot, .ed-menu { transition: none !important; } .ed-key.on, .ed-in, .ed-shake { animation: none !important; } }'
+    '@media (prefers-reduced-motion: reduce) { .ed-cam, .ed-spot, .ed-menu { transition: none !important; } .ed-key.on, .ed-in { animation: none !important; } }'
   ].join('\n');
 
   var loading = false, mounted = false;
   function load() {
     if (loading) return;
     loading = true;
-    fetch('editor-snap.html?v=20261009c', { credentials: 'same-origin' })
+    fetch('editor-snap.html?v=20261010z', { credentials: 'same-origin' })
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
       .then(safe('mount', mount))
       .then(function () { if (!mounted) fallback(); })
@@ -157,7 +135,7 @@
   function fallback() {
     if (mounted || fig.classList.contains('is-picture')) return;
     var img = doc.createElement('img');
-    img.src = 'editor.webp';
+    img.src = 'editor.webp?v=20261010z';
     img.width = 1200; img.height = 900;
     img.alt = '';
     img.decoding = 'async';
@@ -184,19 +162,18 @@
     menu = doc.createElement('div'); menu.className = 'ed-menu';
     menu.innerHTML = '<p class="g">Built in</p><p class="i" data-v="default">Official layout</p><p class="i" data-v="author">Recommended</p>' +
       '<p class="g">Yours</p><p class="i" data-v="mine">My layout</p><hr><p class="i">Import a file…</p>';
+    // the two built-in layouts are named as the editor's own picker names them ("Recommended (installed)")
+    Array.prototype.forEach.call(menu.querySelectorAll('.i[data-v]'), function (p) {
+      var o = q('#layoutSel option[value="' + p.getAttribute('data-v') + '"]');
+      if (o && o.textContent) p.textContent = o.textContent;
+    });
     body.appendChild(menu);
     keycap = doc.createElement('div'); keycap.className = 'ed-key'; body.appendChild(keycap);
-    game = doc.createElement('div'); game.className = 'ed-game';
-    game.innerHTML = '<p class="gh">In the game</p><p class="gp">Settings › Controls › Keyboard</p><p class="gr"><span>Forward Dodge</span><span class="gk">Shift</span></p>';
-    body.appendChild(game);
     // nothing in the copy takes focus
     qa('button, select, input, [tabindex]').forEach(function (el) { el.setAttribute('tabindex', '-1'); });
     pristine = {
       art1: q('.row[data-action="art1"]').cloneNode(true),
-      potion: q('.row[data-action="potion"]').cloneNode(true),
-      fdodge: q('.row[data-action="fdodge"]').cloneNode(true),
-      map: q('#mapCard').cloneNode(true),
-      recs: q('#recsCard').innerHTML
+      map: q('#mapCard').cloneNode(true)
     };
     ptr = doc.createElement('i');
     ptr.className = 'ed-ptr';
@@ -222,11 +199,7 @@
   }
 
   /* ---------- geometry: editor px <-> the screen ---------- */
-  function textOf(el) {      // the text of a block (its words, not the full-width box)
-    if (!el) return null;
-    var r = doc.createRange(); r.selectNodeContents(el); return r;
-  }
-  function rectOf(el) {      // an element's (or a range's) box in the editor's own 1280 x 960 px
+  function rectOf(el) {      // an element's box in the editor's own 1280 x 960 px
     var b = body.getBoundingClientRect(), r = el.getBoundingClientRect(), s = b.width / W || 1;
     return { x: (r.left - b.left) / s, y: (r.top - b.top) / s, w: r.width / s, h: r.height / s };
   }
@@ -398,11 +371,6 @@
     if (a) a.onfinish = function () { el.remove(); if (done) done(); };
     else { el.remove(); if (done) done(); }
   }
-  function grow(el, h0, ms) {         // a box changes height: animate from the old height to the new one
-    var h1 = el.offsetHeight;
-    if (Math.abs(h1 - h0) < 2) return;
-    animate(el, [{ height: h0 + 'px', overflow: 'hidden' }, { height: h1 + 'px', overflow: 'hidden' }], { duration: ms, easing: 'cubic-bezier(.4, 0, .2, 1)' });
-  }
   function pressKey(label, near, fx) { // the keycap that shows a key being pressed, over a button
     var r = rectOf(near);
     keycap.textContent = label;
@@ -471,37 +439,13 @@
     menu.classList.remove('on');
     qa('.ed-menu .i').forEach(function (p) { p.classList.remove('hot', 'pick', 'cur'); });
     keycap.classList.remove('on');
-    game.classList.remove('on');
     var t = q('#toast'); if (t) t.classList.remove('show');
     qa('.ed-press').forEach(function (el) { el.classList.remove('ed-press'); });
-    [['art1', '.row[data-action="art1"]'], ['potion', '.row[data-action="potion"]'], ['fdodge', '.row[data-action="fdodge"]'], ['map', '#mapCard']].forEach(function (p) {
+    [['art1', '.row[data-action="art1"]'], ['map', '#mapCard']].forEach(function (p) {
       var live = q(p[1]);
       if (live) live.replaceWith(pristine[p[0]].cloneNode(true));
     });
-    var note = q('#syncNote'); if (note) note.classList.remove('ed-lit');
     app.classList.remove('ed-keys');
-  }
-  // boxes whose height a step changed go back smoothly (measured first, animated after the camera is set)
-  function restoreBoxes() {
-    var later = [];
-    var cf = q('#conflicts');
-    if (cf && cf.style.height) { cf.textContent = ''; cf.style.height = ''; cf.style.overflow = ''; }   // a collapse that was cut short
-    if (cf && cf.firstChild) {
-      var h0 = cf.offsetHeight;
-      cf.style.height = '0px'; cf.style.overflow = 'hidden';
-      later.push(function () {
-        var a = animate(cf, [{ height: h0 + 'px', opacity: 1 }, { height: '0px', opacity: 0 }], { duration: 450, easing: 'cubic-bezier(.4, 0, .2, 1)' });
-        var end = function () { cf.textContent = ''; cf.style.height = ''; cf.style.overflow = ''; };
-        if (a) { a.onfinish = end; a.oncancel = end; } else end();
-      });
-    }
-    var rc = q('#recsCard');
-    if (rc && rc.innerHTML !== pristine.recs) {
-      var r0 = rc.offsetHeight;
-      rc.innerHTML = pristine.recs;
-      later.push(function () { grow(rc, r0, 500); });
-    }
-    return later;
   }
 
   /* ---------- the steps ---------- */
@@ -514,38 +458,7 @@
     var r = row(id);
     return r ? [r.querySelector('.badge'), r.querySelector('.keys .cap'), r.querySelector('.keys .add'), r.querySelector('.ingame')] : [];
   };
-  var roomForQ = function (list) {   // Health potion's row gets one key wider in step 3: light that room too
-    var g = row('potion') && row('potion').querySelector('.ingame');
-    if (g) { var r = rectOf(g); list.push({ x: r.x + 56, y: r.y, w: r.w, h: r.h }); }
-    return list;
-  };
   var OVERVIEW = { spot: null };
-  // step 4 on wide screens: the line at the top, Forward dodge and the checklist, all in view
-  var syncView = function () { return [q('#syncNote'), row('fdodge'), q('#recsCard')]; };
-  // the checklist with one key to change, as the editor shows it (its copy with three, cut down)
-  function oneRec(action, key, was) {
-    var tpl = q('#ed-recs');
-    if (!tpl) return null;
-    var box = doc.createElement('div');
-    box.innerHTML = tpl.innerHTML;
-    var lis = box.querySelectorAll('ul.recs li');
-    if (!lis.length) return null;
-    for (var i = 1; i < lis.length; i++) lis[i].remove();
-    var line = lis[0].querySelector('span'), b = doc.createElement('b'), b2 = doc.createElement('b'), w = doc.createElement('span');
-    b.textContent = action; b2.textContent = key; w.className = 'was'; w.textContent = 'now: ' + was;
-    line.textContent = '';
-    line.appendChild(b); line.appendChild(doc.createTextNode(': first key → ')); line.appendChild(b2); line.appendChild(w);
-    return box.innerHTML;
-  }
-
-  // the game's settings panel (step 4): under the "in game" chip, its right edge on the chip's
-  var gameBox = function () { return { x: game.offsetLeft, y: game.offsetTop, w: game.offsetWidth, h: game.offsetHeight }; };
-  function placeGame(near) {
-    if (!near) return;
-    var r = rectOf(near), w = game.offsetWidth || 290;
-    game.style.left = Math.max(8, r.x + r.w - w).toFixed(1) + 'px';
-    game.style.top = (r.y + r.h + 14).toFixed(1) + 'px';
-  }
   // the open menu's box (its own layout box: the closed menu is drawn a little shifted)
   var menuBox = function () { return { x: menu.offsetLeft, y: menu.offsetTop, w: menu.offsetWidth, h: menu.offsetHeight }; };
   var PICKER = { spot: function () { return [q('#layoutSel')]; }, frame: function () { return [q('.layoutbar .label'), q('#layoutSel'), menuBox(), q('#exportBtn')]; }, side: 'right',
@@ -619,128 +532,8 @@
         at(4400, ptrHide);
       }
     },
-    // 3 · Health potion gets Q too: both keys go red and shake; the notice opens at the top
+    // 3 · the keyboard map lights up colour by colour; then what a key does; then your own keys
     3: {
-      frame: { spot: function () { return roomForQ(inRow('art1').concat(inRow('potion'))); }, side: 'below',
-        ph: { spot: function () { return roomForQ(keysOf('art1').concat(keysOf('potion'))); } } },
-      notice: { spot: function () { var n = q('#conflicts .conflicts'); return n ? [n.querySelector('.icon'), textOf(n.querySelector('h2')), textOf(n.querySelector('p')), textOf(n.querySelector('li'))] : []; }, pad: 12, side: 'below',
-        ph: { spot: function () { var n = q('#conflicts .conflicts'); return n ? [n.querySelector('.icon'), textOf(n.querySelector('h2')), textOf(n.querySelector('li'))] : []; } } },
-      play: function () {
-        var r = row('potion'), add = r.querySelector('.keys .add');
-        at(850, function () { ptrShow(add, 0.45, 0.6); });
-        at(1450, function () {
-          ptrClick(add);
-          add.classList.add('listening', 'ed-wait');
-          add.textContent = 'Press a key…';
-        });
-        at(1750, function () { pressKey('Q', add, 0.5); });
-        at(2400, function () {
-          var q2 = chip('Q');
-          add.replaceWith(q2);
-          q2.after(addBtn());
-          var a1 = row('art1').querySelector('.keys .cap');
-          [q2, a1].forEach(function (c) { if (!c) return; c.classList.add('conflict', 'ed-shake'); });
-          var mq = mapKey('Q'); if (mq) mq.classList.add('conflict');
-          ptrHide();
-        });
-        at(3300, function () {   // the editor's red notice, at the top
-          var cf = q('#conflicts'), tpl = q('#ed-conflicts');
-          if (!cf || !tpl) return;
-          cf.innerHTML = tpl.innerHTML;
-          cf.querySelectorAll('button').forEach(function (b) { b.tabIndex = -1; });
-          var h1 = cf.offsetHeight;
-          showFrame(STEPS[3].notice);
-          animate(cf, [{ height: '0px', opacity: 0, overflow: 'hidden' }, { height: h1 + 'px', opacity: 1, overflow: 'hidden' }], { duration: 520, easing: 'cubic-bezier(.4, 0, .2, 1)' });
-        });
-      }
-    },
-    // 4 · the "in game" keys follow the game's own settings: Forward dodge goes from Shift to Ctrl
-    // in the editor, the game still has Shift ("in game" turns yellow, the checklist lists it);
-    // then the player changes it in the game's own keyboard settings, and the editor follows by
-    // itself: the chip turns to Ctrl, the checklist clears, the line at the top lights up
-    4: {
-      frame: { spot: function () { return [textOf(q('#syncNote'))]; }, frame: syncView, side: 'below',
-        ph: { spot: function () { return [textOf(q('#syncNote'))]; } } },
-      change: { spot: function () { return keysOf('fdodge'); }, frame: syncView, side: 'below',
-        ph: { spot: function () { return keysOf('fdodge'); } } },
-      follow: { spot: function () { return [row('fdodge').querySelector('.ingame'), q('#recsCard')]; }, pad: 6, frame: syncView, side: 'below',
-        ph: { spot: function () { return [row('fdodge').querySelector('.ingame'), q('#recsCard ul.recs') || q('#recsCard .allset')]; } } },
-      game: { spot: function () { return [gameBox()]; }, pad: 6, frame: function () { return syncView().concat([gameBox()]); }, side: 'below',
-        ph: { spot: function () { return [gameBox()]; }, frame: function () { return [row('fdodge').querySelector('.ingame'), gameBox()]; } } },
-      play: function () {
-        var S = STEPS[4], r = row('fdodge'), rc = q('#recsCard'), note = q('#syncNote');
-        var c = r.querySelector('.keys .cap'), x = c && c.querySelector('button'), add = r.querySelector('.keys .add'), g = r.querySelector('.ingame button[data-slot="0"]');
-        var gk = game.querySelector('.gk');
-        at(1300, function () { showFrame(S.change, false, true); });
-        at(2000, function () { ptrShow(x, 0.5, 0.55); });
-        at(2600, function () { ptrClick(x); });
-        at(2750, function () { collapse(c, 280); });
-        at(3100, function () { ptrTo(add, 0.45, 0.6, 420); });
-        at(3600, function () {
-          ptrClick(add);
-          add.classList.add('listening', 'ed-wait');
-          add.textContent = 'Press a key…';
-        });
-        at(3900, function () { pressKey('Ctrl', add, 0.5); });
-        at(4550, function () {   // Ctrl is the key now; the game still has Shift, so its chip turns yellow and the checklist lists it
-          var k2 = chip('Ctrl');
-          k2.classList.add('ed-in');
-          add.replaceWith(k2);
-          var nb = addBtn(); nb.classList.add('ed-in');
-          k2.after(nb);
-          if (g) { g.classList.remove('match'); g.classList.add('stray'); }
-          light(mapKey('Shift'), null); light(mapKey('Shift', true), null);
-          light(mapKey('Ctrl'), 'move'); light(mapKey('Ctrl', true), 'move');
-          var html = oneRec('Forward Dodge', 'Ctrl', 'Shift');
-          if (html) {
-            var h0 = rc.offsetHeight;
-            rc.innerHTML = html;
-            rc.querySelectorAll('button').forEach(function (b) { b.tabIndex = -1; });
-            var li = rc.querySelector('ul.recs li'); if (li) li.classList.add('ed-in');
-            grow(rc, h0, 420);
-          }
-          ptrHide();
-          showFrame(S.follow, false, true);
-        });
-        at(6000, function () {   // meanwhile, in the game: its own keyboard settings, Forward Dodge on Shift
-          placeGame(g);
-          gk.textContent = 'Shift';
-          game.classList.add('on');
-          showFrame(S.game, false, true);
-        });
-        at(6900, function () { pressKey('Ctrl', gk, 0.5); });
-        at(7550, function () { gk.textContent = 'Ctrl'; gk.classList.remove('ed-in'); void gk.offsetWidth; gk.classList.add('ed-in'); });
-        at(8500, function () { game.classList.remove('on'); showFrame(S.follow, false, true); });
-        at(9000, function () {   // the game saved its settings: the editor shows its new key, and the checklist ticks off
-          if (g) {
-            g.textContent = 'Ctrl';
-            g.classList.remove('stray', 'ed-in'); g.classList.add('match');
-            void g.offsetWidth; g.classList.add('ed-in');
-          }
-          var li = rc.querySelector('ul.recs li');
-          if (li) { li.classList.remove('ed-in'); li.classList.add('ed-done'); var t = doc.createElement('i'); t.className = 'ed-tick'; li.appendChild(t); }
-        });
-        at(9450, function () {
-          var li = rc.querySelector('ul.recs li');
-          if (li) animate(li, [{ height: li.offsetHeight + 'px', opacity: 1, marginBottom: '0px' }, { height: '0px', opacity: 0, paddingTop: '0px', paddingBottom: '0px', marginBottom: '-6px', borderWidth: '0px' }],
-            { duration: 340, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
-        });
-        at(9900, function () {   // All set, as before the change
-          var h0 = rc.offsetHeight;
-          rc.innerHTML = pristine.recs;
-          rc.querySelectorAll('button').forEach(function (b) { b.tabIndex = -1; });
-          var ok = rc.querySelector('.allset'); if (ok) ok.classList.add('ed-in');
-          showFrame(S.follow, false, true);
-          grow(rc, h0, 420);
-        });
-        at(10850, function () {   // the line at the top: that's what happened
-          if (note) note.classList.add('ed-lit');
-          showFrame(S.frame, false, true);
-        });
-      }
-    },
-    // 5 · the keyboard map lights up colour by colour; then what a key does; then your own keys
-    5: {
       frame: { spot: function () { return [q('#mapCard')]; }, pad: 4, side: 'left',
         ph: { spot: function () { return [q('#kbd')]; } } },
       play: function () {
@@ -767,8 +560,8 @@
         at(5200, function () { if (!touched) ptrHide(); });
       }
     },
-    // 6 · Save to game: the camera pulls back, the map's keys flash outwards, the toast
-    6: {
+    // 4 · Install/Apply Layout: the camera pulls back, the map's keys flash outwards, the toast
+    4: {
       frame: { spot: function () { return [q('#downloadTop')]; }, frame: function () { return [q('#exportBtn'), q('#downloadTop'), q('.langpick')]; }, side: 'below',
         ph: { spot: function () { return [q('#downloadTop')]; } } },
       play: function () {
@@ -802,39 +595,46 @@
       stage.style.transition = '';
     }
     restore();
-    var later = restoreBoxes(n);
     var s = STEPS[n];
-    if (s && s.before) later = later.concat(s.before() || []);
+    if (s && s.before) s.before();
     step = n;
     markDot(n);
     showCap(n);
     var c = showFrame(s ? s.frame : OVERVIEW, now);
-    later.forEach(function (fn) { fn(); });
     if (cap && n) at(now ? 0 : 380, function () { cap.classList.add('on'); });
     if (s && s.play) s.play(c);
   });
 
   /* ---------- the scroll picks the step ---------- */
-  function unit() { var d = track.offsetHeight - pin.offsetHeight; return d > 0 ? d / 7 : 0; }
+  function unit() { var d = track.offsetHeight - pin.offsetHeight; return d > 0 ? d / 5 : 0; }
   function stepFromScroll() {
     var u = unit();
     if (!u) return 0;
     var p = -track.getBoundingClientRect().top;
     if (p < u * 0.4) return 0;
-    return Math.min(6, 1 + Math.floor((p - u * 0.4) / u));
+    return Math.min(4, 1 + Math.floor((p - u * 0.4) / u));
   }
-  var ticking = false;
+  var ticking = false, lastGo = 0;
   function onScroll() {
     if (!tourOn || ticking) return;
     ticking = true;
     requestAnimationFrame(function () {
       ticking = false;
       if (!near) return;
+      var room = track.offsetHeight - pin.offsetHeight;   // the line under the dots follows the scroll
+      if (dotsWrap && room > 0) dotsWrap.style.setProperty('--tp', Math.max(0, Math.min(1, -track.getBoundingClientRect().top / room)).toFixed(4));
       var s = stepFromScroll();
       if (jumping) { if (s === jumping) { jumping = 0; clearTimeout(jumpTimer); } return; }
-      if (s === step) { clearTimeout(settle); settle = 0; return; }
-      clearTimeout(settle);
-      settle = setTimeout(function () { settle = 0; var s2 = stepFromScroll(); if (s2 !== step && near && !jumping) go(s2); }, 150);
+      clearTimeout(settle); settle = 0;
+      if (s === step) return;
+      // a new step starts at once and cuts the old one short; only a fling is held back a little
+      var wait = 140 - (performance.now() - lastGo);
+      if (wait <= 0) { lastGo = performance.now(); go(s); return; }
+      settle = setTimeout(function () {
+        settle = 0;
+        var s2 = stepFromScroll();
+        if (s2 !== step && near && !jumping) { lastGo = performance.now(); go(s2); }
+      }, wait);
     });
   }
   function jumpTo(n) {
@@ -849,9 +649,9 @@
     window.scrollTo({ top: Math.round(top), behavior: 'smooth' });
   }
 
-  /* ---------- your own keys light the map (step 5, while it's on screen) ---------- */
-  var CODES = { Space: 'Space', Enter: 'Enter', NumpadEnter: 'Enter', Escape: 'Escape', Tab: 'Tab', ShiftLeft: 'Shift', ShiftRight: 'Shift',
-    ControlLeft: 'Ctrl', ControlRight: 'Ctrl', AltLeft: 'Alt', AltRight: 'Alt', Backspace: 'Backspace', CapsLock: 'CapsLock', MetaLeft: 'cmd', MetaRight: 'cmd',
+  /* ---------- your own keys light the map (step 3, while it's on screen) ---------- */
+  var CODES = { Space: 'Space', Enter: 'Enter', NumpadEnter: 'Enter', Escape: 'Escape', Tab: 'Tab', ShiftLeft: 'LShift', ShiftRight: 'RShift',
+    ControlLeft: 'LCtrl', ControlRight: 'RCtrl', AltLeft: 'LAlt', AltRight: 'RAlt', Backspace: 'Backspace', CapsLock: 'CapsLock', MetaLeft: 'cmd', MetaRight: 'cmd',
     OSLeft: 'cmd', OSRight: 'cmd', ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right', Backquote: 'Backtick', Minus: '-', Equal: '=',
     BracketLeft: '[', BracketRight: ']', Backslash: '\\', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/' };
   function codeKey(code) {
@@ -863,7 +663,7 @@
   function release() { Object.keys(downKeys).forEach(function (c) { if (downKeys[c]) downKeys[c].classList.remove('ed-down'); }); downKeys = {}; }
   function setLive(on) { liveKeys = on; if (!on) release(); }
   doc.addEventListener('keydown', safe('keys', function (e) {
-    if (!liveKeys || step !== 5 || !near || e.defaultPrevented || editable(e.target) || editable(doc.activeElement)) return;
+    if (!liveKeys || step !== 3 || !near || e.defaultPrevented || editable(e.target) || editable(doc.activeElement)) return;
     if ((e.ctrlKey || e.metaKey) && !/^(Control|Meta|OS)/.test(e.code)) return;   // a shortcut: not ours
     var id = codeKey(e.code);
     var el = id && mapKey(id, /Right$/.test(e.code));
@@ -881,9 +681,9 @@
     el.classList.remove('ed-down');
   }));
   window.addEventListener('blur', release);
-  // pointing at a key on the map shows what it does (step 5)
+  // pointing at a key on the map shows what it does (step 3)
   view.addEventListener('mouseover', safe('hover', function (e) {
-    if (step !== 5 || !sr) return;
+    if (step !== 3 || !sr) return;
     var path = e.composedPath ? e.composedPath() : [];
     for (var i = 0; i < path.length; i++) {
       var el = path[i];
@@ -901,7 +701,7 @@
     fig.classList.toggle('is-tour', on);
     if (!on) {
       clearTimeout(settle); settle = 0;
-      if (sr) { restore(); restoreBoxes(0).forEach(function (fn) { fn(); }); setCam({ z: 1, tx: 0, ty: 0 }, true); setSpot(null, true); }
+      if (sr) { restore(); setCam({ z: 1, tx: 0, ty: 0 }, true); setSpot(null, true); }
       showCap(0);
       step = -1; frameNow = null;
       markDot(0);
@@ -929,7 +729,7 @@
         near = e.isIntersecting;
         if (!near && step !== -1) {
           clearTimeout(settle); settle = 0;
-          if (sr && tourOn) { restore(); restoreBoxes(0).forEach(function (fn) { fn(); }); setCam({ z: 1, tx: 0, ty: 0 }, true); setSpot(null, true); showCap(0); }
+          if (sr && tourOn) { restore(); setCam({ z: 1, tx: 0, ty: 0 }, true); setSpot(null, true); showCap(0); }
           step = -1; frameNow = null; markDot(0);
         } else if (near) onScroll();
       });

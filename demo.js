@@ -1653,7 +1653,10 @@
     }
     function update() {
       ticking = false;
-      if (rail.pinned) setStep(clamp(Math.floor((window.pageYOffset - top) / len * 6), 0, 5));
+      if (!rail.pinned) return;
+      var p = clamp((window.pageYOffset - top) / len, 0, 1);
+      rail.el.style.setProperty('--tp', p.toFixed(4));   // the line beside the moves follows the scroll
+      setStep(clamp(Math.floor(p * 6), 0, 5));
     }
     function measure() {                             // where the pinned stretch starts, and how long it is
       top = pin.getBoundingClientRect().top + window.pageYOffset;
